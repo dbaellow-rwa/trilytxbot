@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import streamlit as st
 import altair as alt
+import datetime
 from openai import OpenAI
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -90,7 +91,7 @@ Important columns:
 - age: Athlete age at the time of the report
 - born: Athlete birth year
 - reporting_week: Date of the week this score is reporting on (e.g., "2023-09-10") - Assume the user is asking for an up-to-date week if they do not specify. up-to-date means reporting_week = date_trunc(current_date(), week)
-- distance_group: Race category (e.g., "Iron (140.6 miles)", "Half-Iron (70.3 miles)", "100 km", "Overall")
+- distance_group: Race category (e.g., "Iron (140.6 miles)", "Half-Iron (70.3 miles)", "100 km", "Overall"). If the user does not define a distance, default to distance_group = 'Overall'
 - swim_pto_score, bike_pto_score, run_pto_score, overall_pto_score: PTO segment scores. Higher is better.
 - t1_pto_score, t2_pto_score: Transition segment scores
 - rank_*: Ranking columns that compare this athlete’s score across different groupings (e.g., by distance, gender, country, birth year). These are useful for relative performance analysis.
@@ -150,6 +151,16 @@ Write a 2-4 sentence summary in plain English."""
 # ──────────────────────────────────────────────────────────────────────────────
 # Streamlit App
 # ──────────────────────────────────────────────────────────────────────────────
+def log_vote_to_bq(client, full_table_path: str, vote_type: str, question: str, summary: str):
+    rows = [{
+        "vote_type": vote_type,
+        "question": question,
+        "summary": summary,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }]
+    errors = client.insert_rows_json(full_table_path, rows)
+    if errors:
+        st.error(f"🔴 Error logging vote: {errors}")
 
 
 def main():
@@ -160,6 +171,9 @@ def main():
     credentials, project_id, openai_key = load_credentials()
     bq_client = bigquery.Client(credentials=credentials, project=project_id)
 
+    # ───────────────────────────────
+    # Session State Initialization
+    # ───────────────────────────────
     if not openai_key:
         st.error("Missing OpenAI API key.")
         return
@@ -176,9 +190,18 @@ def main():
     if "example_question" not in st.session_state:
         st.session_state.example_question = ""
 
-    # ──────────────────────────────────────────────────────────────────────────────
+    if "last_question" not in st.session_state:
+        st.session_state.last_question = ""
+
+    if "last_summary" not in st.session_state:
+        st.session_state.last_summary = ""
+
+    if "last_df" not in st.session_state:
+        st.session_state.last_df = pd.DataFrame()
+
+    # ───────────────────────────────
     # Sidebar Filters
-    # ──────────────────────────────────────────────────────────────────────────────
+    # ───────────────────────────────
     with st.sidebar:
         st.header("⚙️ Optional Filters")
         athlete_name = st.text_input("Filter by athlete", value="")
@@ -190,12 +213,12 @@ def main():
             st.session_state.example_question = "How many wins does Lionel Sanders have in Oceanside?"
         if st.button("Who won the 70.3 world championship in 2024?"):
             st.session_state.example_question = "Who won the 70.3 world championship in 2024?"
-        if st.button("Who is the top female cyclist today?"):
-            st.session_state.example_question = "Who is the top female cyclist today?"
+        if st.button("Who are the top 3 female cyclists today in the 70.3 distance?"):
+            st.session_state.example_question = "Who are the top 3 female cyclists today in the 70.3 distance?"
 
-    # ──────────────────────────────────────────────────────────────────────────────
+    # ───────────────────────────────
     # Main Input
-    # ──────────────────────────────────────────────────────────────────────────────
+    # ───────────────────────────────
     question = st.text_input("Ask your question", value=st.session_state.example_question)
 
     if st.button("Submit") and question:
@@ -213,61 +236,88 @@ def main():
                 df = run_bigquery(sql, bq_client)
                 summary = summarize_results(df, openai_key, question)
 
+                # Save to session state
                 st.session_state.history.append((question, summary))
+                st.session_state.last_question = question
+                st.session_state.last_summary = summary
+                st.session_state.last_df = df
 
-                tab1, tab2, tab3, tab4 = st.tabs(["🧠 Answer", "🧾 SQL", "📊 Results", "📈 Chart"])
-
-                with tab1:
-                    st.markdown("### 🧠 Answer")
-                    st.write(summary)
-                    st.metric("Rows Returned", len(df))
-                    if "overall_seconds" in df.columns:
-                        st.metric("Fastest Time (sec)", int(df["overall_seconds"].min()))
-                    st.markdown("#### Was this answer helpful?")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("👍 Yes", key=f"up_{len(st.session_state.history)}"):
-                            st.session_state.votes.append(("👍", question, summary))
-                            st.success("Thanks for your feedback!")
-                    with col2:
-                        if st.button("👎 No", key=f"down_{len(st.session_state.history)}"):
-                            st.session_state.votes.append(("👎", question, summary))
-                            st.warning("Thanks for your feedback!")
-
-                with tab2:
-                    st.markdown("### 🧾 Generated SQL")
-                    st.code(sql, language="sql")
-
-                with tab3:
-                    st.markdown("### 📊 Results")
-                    st.dataframe(df)
-
-                with tab4:
-                    if "athlete" in df.columns and "overall_seconds" in df.columns:
-                        st.markdown("### 📈 Chart: Athlete vs. Time")
-                        chart = alt.Chart(df).mark_bar().encode(
-                            x=alt.X("athlete:N", sort="-y"),
-                            y="overall_seconds:Q",
-                            tooltip=["athlete", "overall_seconds"]
-                        ).properties(height=400)
-                        st.altair_chart(chart, use_container_width=True)
-                    else:
-                        st.info("No chartable data in result.")
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
-    # ──────────────────────────────────────────────────────────────────────────────
+    # ───────────────────────────────
+    # Display Tabs
+    # ───────────────────────────────
+    if not st.session_state.last_question or st.session_state.last_df.empty:
+        st.info("Ask a question to begin.")
+        return
+
+    tab1, tab2, tab3, tab4 = st.tabs(["🧠 Answer", "🧾 SQL", "📊 Results", "📈 Chart"])
+
+    with tab1:
+        st.markdown("### 🧠 Answer")
+        st.write(st.session_state.last_summary)
+        st.metric("Rows Returned", len(st.session_state.last_df))
+        if "overall_seconds" in st.session_state.last_df.columns:
+            st.metric("Fastest Time (sec)", int(st.session_state.last_df["overall_seconds"].min()))
+
+        st.markdown("#### Was this answer helpful?")
+        vote_col1, vote_col2 = st.columns(2)
+        with vote_col1:
+            if st.button("👍 Yes", key="vote_up"):
+                vote_record = ("👍", st.session_state.last_question, st.session_state.last_summary)
+                st.session_state.votes.append(vote_record)
+                log_vote_to_bq(
+                    bq_client,
+                    "trilytx.trilytx.chatbot_vote_feedback",
+                    "UP",  st.session_state.last_question, st.session_state.last_summary
+                )
+                st.success("Thanks for your feedback!")
+        with vote_col2:
+            if st.button("👎 No", key="vote_down"):
+                vote_record = ("👎", st.session_state.last_question, st.session_state.last_summary)
+                st.session_state.votes.append(vote_record)
+                log_vote_to_bq(
+                    bq_client,
+                    "trilytx.trilytx.chatbot_vote_feedback",
+                    "DOWN",  st.session_state.last_question, st.session_state.last_summary
+                )
+                st.warning("Thanks for your feedback!")
+
+    with tab2:
+        st.markdown("### 🧾 Generated SQL")
+        st.code(generate_sql_from_question(st.session_state.last_question, st.session_state.schema, openai_key), language="sql")
+
+    with tab3:
+        st.markdown("### 📊 Results")
+        st.dataframe(st.session_state.last_df)
+
+    with tab4:
+        if "athlete" in st.session_state.last_df.columns and "overall_seconds" in st.session_state.last_df.columns:
+            st.markdown("### 📈 Chart: Athlete vs. Time")
+            chart = alt.Chart(st.session_state.last_df).mark_bar().encode(
+                x=alt.X("athlete:N", sort="-y"),
+                y="overall_seconds:Q",
+                tooltip=["athlete", "overall_seconds"]
+            ).properties(height=400)
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("No chartable data in result.")
+
+    # ───────────────────────────────
     # History Viewer
-    # ──────────────────────────────────────────────────────────────────────────────
+    # ───────────────────────────────
     with st.expander("📜 Previous Questions"):
         for q, a in reversed(st.session_state.history):
             st.markdown(f"**Q:** {q}\n\n**A:** {a}")
+
     with st.expander("🗳️ Feedback Log"):
         if not st.session_state.votes:
             st.write("No feedback yet.")
         else:
             for vote, q, a in reversed(st.session_state.votes):
                 st.markdown(f"{vote} on **Q:** _{q}_\n> {a[:200]}...")
+
 
 if __name__ == "__main__":
     main()
