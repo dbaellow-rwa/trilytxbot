@@ -15,13 +15,20 @@ from sources_of_truth.secret_manager_utils import get_secret
 # ──────────────────────────────────────────────────────────────────────────────
 # Load Credentials
 # ──────────────────────────────────────────────────────────────────────────────
+
 def load_credentials():
-    if "GOOGLE_APPLICATION_CREDENTIALS_TRILYTX" not in os.environ:
-        print("INFO: No GOOGLE_APPLICATION_CREDENTIALS_TRILYTX found, using ADC locally.")
-    json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
+    if "GOOGLE_APPLICATION_CREDENTIALS_TRILYTX" in os.environ:
+        print("INFO: Using credentials from environment variable.")
+        json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+    else:
+        print("INFO: No GOOGLE_APPLICATION_CREDENTIALS_TRILYTX found, using Secret Manager.")
+        from sources_of_truth.secret_manager_utils import get_secret
+        json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
+
     json_key = json.loads(json_key_str)
     credentials = service_account.Credentials.from_service_account_info(json_key)
-    return credentials, json_key["project_id"] 
+    return credentials, json_key["project_id"]
+
 # ──────────────────────────────────────────────────────────────────────────────
 # BigQuery Schema Loader
 # ──────────────────────────────────────────────────────────────────────────────
