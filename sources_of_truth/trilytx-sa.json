@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "trilytx",
+  "private_key_id": "c7475023266f72c2da3e7ed7842f7224392e2a88",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCcn9pfhUw3k8/g\nEoLd9pprvMT6CwR0U1EBbwnMMAwtlQZOuychOJSkFhUT9BrSPe7ULoExVLDs56hU\nJvnNVjjCSHDRZ3ZPekrwWumPUjfBsrqtQKYN803XFncs0lHz98EbReRjTrfKYqjJ\npUKbDTNemrGbaFgApn4Rjis9RooWXuImzWqfTBl6XwREjds++unbIt+XZlITTJaS\nf0x4DflI23UZd8Ya3UMnNl3YFPD66DttqiMyOziTHQIxleLfAUENgG1eUf0yIJDe\n4ECluJ+MarkFGz9FM+pWH1+77JRi3npvyj8rkKwkiihC1C2QDzogpZLeaI/tvIn5\n5v8QHbehAgMBAAECggEAAyuPIXjSuptAzWHCiViY9o5LFF6NuAcJsDQ9qAbe8DtA\nde5+08LP62RRB+bcdh3vzBam4cc7j4f+1bk2PCw/GNubgPmNoP0yMBw+9vosi7yg\n36nb0pN2o2BeiCc3pm8A1xr6jPIGcU++59ny9610OTl7V9BsW5MDITrV8DcRy3MX\nFljIUqV2/lVNSxPp6x0yNpRv4/RbRcaoaqauYKNfRXFFLsh1te1bwdYvue1KiOeB\ngKLxtUS2VfBHSpvDdtqgujaT0utYIJ1jK6vkw+oIaezmjlrHI5fVIJVqGyvzDQO+\nWdnFZadff373ieDSTlYcAXJMcbDHBjMXy92M/fQmYwKBgQDRzsW7l9cEqXl+YqFI\n/KCCk8M8Kki3dV4Fu/nNMiGboqb9k7qDQYAHdpC1t43c2zRUjIrwZTRTO7/nbZIF\ng3jjxdnALR8BeXv7Q+Mh2CUgF1hkEf/v5ICPZprbLCU2TVpZNwyTaDJvG607MEp5\nW/yM9qEbp0W1JqJmKJtujdm2kwKBgQC/G42V25fji9iRfC3NZ6ymbfFBHoV8GVyg\n/UscyX5hKKhVKPsE0yzalDEs+miwsl3Yw4IipTCobJIJIQZ0vBsd6eVkDMnLlBGR\ncd6j5/VHsQfRSCaBMZ3kEg38ZCcMEhT+dyY5JGO1lOIhTkuGoKVIOFYfBX7FvxIJ\nAActaHllewKBgFUEwjGzZOk5t8bUNuE5pd1j/UBbLh5RjCkstBxHjUDhF2Q4QeNA\nXp4nmJpaaD0wArOkRAUILbzwwGIKj5p2XT2HhiaO4jqZvPjj2J11Vg38B9B9TsYq\nRUJW5Led2vJ3Q/5VBV6SYaWOhJMwjW1CLkP9COoIzYGLx1E4cUvKZYfLAoGAb4PC\ncKm8zdiyvOI7T9qpUkxhNOB8f9fEx2RGSjwBdOxmnZrWLxCS4dELiPVt1X2faXdc\nHp9J7127MXyF6eRB5oivhFw5/IMgZUCO7BHUfMr+hs6VOVocihNG+fnvFwoOGhao\nxTtIu5JvCYRIafyfta66AkwQl49RFNNhXMvT2rUCgYA5Gm5KPulbseNI5FOX5aOi\nkg95KDpEoVROQ2NBMtrL0PKyENlBJQ6X58XT6ACzIyJePdOnxdIF+Gk7tB/+2C4K\nkBx3w7wvyfHAV6jb/Z6LUeeNhCCBJkdGM76GO/p7IORFGvgxsvgUllUSvT+fgtt+\nuHdnWA1wOInp+DUHFouEcA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "trilytx@trilytx.iam.gserviceaccount.com",
+  "client_id": "111245352032482489648",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/trilytx%40trilytx.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
