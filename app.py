@@ -23,7 +23,6 @@ from sources_of_truth.secret_manager_utils import get_secret
 #     from sources_of_truth.secret_manager_utils import get_secret
 #     json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
 #     json_key = json.loads(json_key_str)
-
 #     credentials = service_account.Credentials.from_service_account_info(json_key)
 #     openai_key = get_secret("openai_rwa_1", project_id="906828770740")
 #     return credentials, json_key["project_id"], openai_key
@@ -49,7 +48,7 @@ def extract_table_schema(client, dataset_id: str, table_id: str) -> dict:
 # ──────────────────────────────────────────────────────────────────────────────
 # SQL Generator using OpenAI
 # ──────────────────────────────────────────────────────────────────────────────
-def generate_sql_from_question(question: str, schema: dict, openai_key: str) -> str:
+def generate_sql_from_question(question: str,  openai_key: str) -> str:
     client = OpenAI(api_key=openai_key)
     prompt = f"""
 You are a SQL assistant for triathlon race data in BigQuery. Use standard SQL syntax compatible with Google BigQuery. Always use fully qualified table names (`project.dataset.table`) if not specified, and prefer `SAFE_CAST`, `DATE_DIFF`, `DATE_TRUNC`, and `QUALIFY` where appropriate.
@@ -69,7 +68,8 @@ Important columns:
 - swim_time, bike_time, run_time: Segment times in string format
 - swim_seconds, bike_seconds, run_seconds: Segment times in seconds
 - distance: Full race distance label (e.g., "Half-Iron (70.3 miles)")
-- category, gender: Gender classification
+- category: race category
+- gender: Athlete gender (e.g., "men" and "women")
 - race_name: lowercase-hyphenated version of the race name (e.g., nice-world-championships)
 - unique_race_id, year, date: Race-level identifiers and timing
 - tier: Tier classification (e.g., “Gold Tier”)
@@ -84,7 +84,7 @@ Important columns:
 - athlete_id: Unique identifier for the athlete
 - athlete: Athlete’s full name (e.g., “LIONEL SANDERS”)
 - athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., "lionel-sanders")
-- gender: Athlete gender (e.g., "men")
+- gender: Athlete gender (e.g., "men" and "women")
 - country: Country the athlete represents (e.g., "Canada")
 - weight: Athlete weight (e.g., "73kg")
 - height: Athlete height in meters (e.g., "1.77")
@@ -105,9 +105,11 @@ If multiple races occurred there, include them all unless the user specifies a y
 When asking about race results, include information like the race name, gender, location, date, distance, organizer, overall time, etc. 
 When returning information about an athlete, include name, year, country, and gender. 
 
-If a question is asked about "half" or "70.3", use distance = 'Half-Iron (70.3 miles)', if they say "full" or "140.6" or "ironman", use distance = "Iron (140.6 miles)"
 
-
+Helpful tips
+- If a question is asked about "half" or "70.3", use distance = 'Half-Iron (70.3 miles)', if they say "full" or "140.6" or "ironman", use distance = "Iron (140.6 miles)"
+- T100 is a reference to organizer = 't100'
+- if the users says "female", replace it with gender = "women", if they say "male", replace it with gender = "men"
 Your job:
 Given the user question below, generate **only a valid BigQuery SQL query** using the table and columns above. Do **not** include explanations or comments.
 
@@ -162,6 +164,27 @@ def log_vote_to_bq(client, full_table_path: str, vote_type: str, question: str, 
     if errors:
         st.error(f"🔴 Error logging vote: {errors}")
 
+def log_interaction_to_bq(client, full_table_path: str, question: str, sql: str, summary: str):
+    rows = [{
+        "question": question,
+        "generated_sql": sql,
+        "summary": summary,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }]
+    errors = client.insert_rows_json(full_table_path, rows)
+    if errors:
+        st.error(f"🔴 Error logging interaction: {errors}")
+def log_error_to_bq(client, full_table_path: str, question: str, sql: str, error_msg: str, attempt: int):
+    rows = [{
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "question": question,
+        "generated_sql": sql,
+        "error_message": error_msg,
+        "attempt": attempt
+    }]
+    errors = client.insert_rows_json(full_table_path, rows)
+    if errors:
+        st.error(f"🔴 Failed to log error to BigQuery: {errors}")
 
 def main():
     st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
@@ -230,25 +253,89 @@ def main():
                 if distance_filter:
                     filters_context += f"\n- Distance: {distance_filter}"
 
-                augmented_question = f"{question}\n\n[Contextual Filters Applied]{filters_context if filters_context else ' None'}\n\nNote: The `athlete` column is stored in UPPERCASE."
+                base_context = f"{question}\n\n[Contextual Filters Applied]{filters_context if filters_context else ' None'}\n\nNote: The `athlete` column is stored in UPPERCASE."
 
-                sql = generate_sql_from_question(augmented_question, st.session_state.schema, openai_key)
-                df = run_bigquery(sql, bq_client)
-                summary = summarize_results(df, openai_key, question)
+                max_attempts = 5
+                attempt = 1
+                error_history = []
 
-                # Save to session state
+                sql = generate_sql_from_question(base_context, openai_key)
+                # st.code(sql, language="sql")
+
+                while attempt <= max_attempts:
+                    try:
+                        df = run_bigquery(sql, bq_client)
+                        break  # ✅ Success
+                    except Exception as bq_error:
+                        error_str = str(bq_error)
+                        error_history.append(f"Attempt {attempt}: {error_str}")
+                        st.warning(f"Attempt {attempt} failed: {error_str}")
+                        log_error_to_bq(
+                            bq_client,
+                            "trilytx.trilytx.chatbot_error_log",
+                            question,
+                            sql,
+                            error_str,
+                            attempt
+                        )
+
+                        if attempt == max_attempts:
+                            summary = (
+                                f"❌ **Query failed after {max_attempts} attempts.**\n\n"
+                                f"**Your question:** {question}\n\n"
+                                f"**Error details:**\n" +
+                                "\n".join(error_history)
+                            )
+                            df = pd.DataFrame()  # ensure df is defined so the rest of the logic still works
+                            log_error_to_bq(
+                                bq_client,
+                                "trilytx.trilytx.chatbot_error_log",
+                                question,
+                                sql,
+                                error_history[-1]  # Log the most recent error
+                            )
+                            break
+
+                        retry_context = (
+                            f"{base_context}\n\n[ERROR LOG]\n" +
+                            "\n".join(error_history) +
+                            "\n\nPlease revise the SQL to avoid these issues. Do not use columns or aliases not listed in the Important columns: section of the prompt."
+                        )
+                        sql = generate_sql_from_question(retry_context,  openai_key)
+                        # st.code(sql, language="sql")
+                        attempt += 1
+                if df.empty:
+                    summary = (
+                        f"### ⚠️ No results found for your question:\n"
+                        f"> **{question}**\n\n"
+                        f"Try:\n"
+                        f"- Relaxing filters like country, gender, or birth year\n"
+                    )
+
+                else:
+                    summary = summarize_results(df, openai_key, question)
+
                 st.session_state.history.append((question, summary))
                 st.session_state.last_question = question
                 st.session_state.last_summary = summary
                 st.session_state.last_df = df
+                st.session_state.last_sql = sql
+
+                log_interaction_to_bq(
+                    bq_client,
+                    "trilytx.trilytx.chatbot_question_log",
+                    question,
+                    sql,
+                    summary
+                )
 
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"❌ Unexpected error (caught at top level): {e}")
 
     # ───────────────────────────────
     # Display Tabs
     # ───────────────────────────────
-    if not st.session_state.last_question or st.session_state.last_df.empty:
+    if not st.session_state.last_question:
         st.info("Ask a question to begin.")
         return
 
@@ -267,26 +354,18 @@ def main():
             if st.button("👍 Yes", key="vote_up"):
                 vote_record = ("👍", st.session_state.last_question, st.session_state.last_summary)
                 st.session_state.votes.append(vote_record)
-                log_vote_to_bq(
-                    bq_client,
-                    "trilytx.trilytx.chatbot_vote_feedback",
-                    "UP",  st.session_state.last_question, st.session_state.last_summary
-                )
+                log_vote_to_bq(bq_client, "trilytx.trilytx.chatbot_vote_feedback", "UP", st.session_state.last_question, st.session_state.last_summary)
                 st.success("Thanks for your feedback!")
         with vote_col2:
             if st.button("👎 No", key="vote_down"):
                 vote_record = ("👎", st.session_state.last_question, st.session_state.last_summary)
                 st.session_state.votes.append(vote_record)
-                log_vote_to_bq(
-                    bq_client,
-                    "trilytx.trilytx.chatbot_vote_feedback",
-                    "DOWN",  st.session_state.last_question, st.session_state.last_summary
-                )
+                log_vote_to_bq(bq_client, "trilytx.trilytx.chatbot_vote_feedback", "DOWN", st.session_state.last_question, st.session_state.last_summary)
                 st.warning("Thanks for your feedback!")
 
     with tab2:
         st.markdown("### 🧾 Generated SQL")
-        st.code(generate_sql_from_question(st.session_state.last_question, st.session_state.schema, openai_key), language="sql")
+        st.code(st.session_state.last_sql, language="sql")
 
     with tab3:
         st.markdown("### 📊 Results")
@@ -304,9 +383,6 @@ def main():
         else:
             st.info("No chartable data in result.")
 
-    # ───────────────────────────────
-    # History Viewer
-    # ───────────────────────────────
     with st.expander("📜 Previous Questions"):
         for q, a in reversed(st.session_state.history):
             st.markdown(f"**Q:** {q}\n\n**A:** {a}")
