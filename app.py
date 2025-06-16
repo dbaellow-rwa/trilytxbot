@@ -19,10 +19,10 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-USE_SECRET_MANAGER = 1  # Set to 0 for local testing with env vars
+USE_LOCAL = 1  # Set to 0 for pushing to production, 1 for local development
 
 def load_credentials():
-    if USE_SECRET_MANAGER:
+    if USE_LOCAL:
         from sources_of_truth.secret_manager_utils import get_secret
         json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
         json_key = json.loads(json_key_str)
