@@ -106,10 +106,14 @@ When asking about race results, include information like the race name, gender, 
 When returning information about an athlete, include name, year, country, and gender. 
 
 
-Helpful tips
-- If a question is asked about "half" or "70.3", use distance = 'Half-Iron (70.3 miles)', if they say "full" or "140.6" or "ironman", use distance = "Iron (140.6 miles)"
-- T100 is a reference to organizer = 't100'
-- if the users says "female", replace it with gender = "women", if they say "male", replace it with gender = "men"
+Helpful tips:
+- If a question is asked about "half" or "70.3", use `distance = 'Half-Iron (70.3 miles)'`, and for "full" or "140.6", use `distance = 'Iron (140.6 miles)'`.
+- T100 is a reference to `organizer = 't100'`.
+- If the user says "female", replace it with `gender = 'women'`; "male" becomes `gender = 'men'`.
+- If filtering by the latest race date, use a subquery: `WHERE date = (SELECT MAX(date) FROM ...)`.
+- Only join `trilytx_fct.fct_pto_scores_weekly` if the user explicitly references segment scores (not results) or ranking data.
+- Do **not** use `QUALIFY` unless using a window function like `RANK()` or `ROW_NUMBER()`.
+
 Your job:
 Given the user question below, generate **only a valid BigQuery SQL query** using the table and columns above. Do **not** include explanations or comments.
 
