@@ -17,17 +17,19 @@ from sources_of_truth.secret_manager_utils import get_secret
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def load_credentials():
-    if "GOOGLE_APPLICATION_CREDENTIALS_TRILYTX" in os.environ:
-        print("INFO: Using JSON credentials from environment variable.")
-        json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
-        json_key = json.loads(json_key_str)
-    else:
-        print("INFO: No environment variable found, falling back to Secret Manager.")
-        from sources_of_truth.secret_manager_utils import get_secret
-        json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
-        json_key = json.loads(json_key_str)
 
+# def load_credentials():
+#     from sources_of_truth.secret_manager_utils import get_secret
+#     json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
+#     json_key = json.loads(json_key_str)
+
+#     credentials = service_account.Credentials.from_service_account_info(json_key)
+#     return credentials, json_key["project_id"]
+
+def load_credentials():
+
+    json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+    json_key = json.loads(json_key_str)
     credentials = service_account.Credentials.from_service_account_info(json_key)
     return credentials, json_key["project_id"]
 
