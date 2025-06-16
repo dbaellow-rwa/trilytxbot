@@ -19,21 +19,23 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-# def load_credentials():
-#     from sources_of_truth.secret_manager_utils import get_secret
-#     json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
-#     json_key = json.loads(json_key_str)
-#     credentials = service_account.Credentials.from_service_account_info(json_key)
-#     openai_key = get_secret("openai_rwa_1", project_id="906828770740")
-#     return credentials, json_key["project_id"], openai_key
+USE_SECRET_MANAGER = 1  # Set to 0 for local testing with env vars
 
 def load_credentials():
+    if USE_SECRET_MANAGER:
+        from sources_of_truth.secret_manager_utils import get_secret
+        json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
+        json_key = json.loads(json_key_str)
+        credentials = service_account.Credentials.from_service_account_info(json_key)
+        openai_key = get_secret("openai_rwa_1", project_id="906828770740")
+    else:
+        json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+        json_key = json.loads(json_key_str)
+        credentials = service_account.Credentials.from_service_account_info(json_key)
+        openai_key = os.environ["OPENAI_API_KEY"]
 
-    json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
-    json_key = json.loads(json_key_str)
-    credentials = service_account.Credentials.from_service_account_info(json_key)
-    openai_key = os.environ["OPENAI_API_KEY"]
     return credentials, json_key["project_id"], openai_key
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # BigQuery Schema Loader
@@ -67,17 +69,46 @@ Important columns:
 - overall_seconds, overall_time: Total race time (in seconds and as HH:MM:SS)
 - swim_time, bike_time, run_time: Segment times in string format
 - swim_seconds, bike_seconds, run_seconds: Segment times in seconds
-- distance: Full race distance label (e.g., "Half-Iron (70.3 miles)")
+- distance: Full race distance label (e.g., "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Short course", "Other middle distances", "Other long distances", "100 km")
 - category: race category
 - gender: Athlete gender (e.g., "men" and "women")
-- race_name: lowercase-hyphenated version of the race name (e.g., nice-world-championships)
+- race_name: lowercase-hyphenated version of the race name (e.g., nice-world-championships, )
 - unique_race_id, year, date: Race-level identifiers and timing
 - tier: Tier classification (e.g., “Gold Tier”)
 - sof: Strength of Field (numeric)
 - organizer: Race organizer
 - location: city/country (e.g. Miami, FL, United States, Buenos Aires, Argentina )
 
-2. `trilytx_fct.fct_pto_scores_weekly`
+2. `trilytx_fct.fct_race_results_vs_predict`
+Contains model-predicted triathlon race outcomes compared to actual race-day results, one row per athlete per race.
+
+Important columns:
+- unique_race_id: Unique identifier for the race
+- race_name: Lowercase-hyphenated race name (e.g., "san-francisco-t100-2025-women")
+- cleaned_race_name: Cleaned version of the race name (e.g., "San Francisco T100 2025 Women").
+- athlete: Athlete’s full name, uppercased (e.g., "ASHLEIGH GENTLE")
+- athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., "ashleigh-gentle")
+- gender: Athlete gender (e.g., "women", "men')
+- organizer: Race organizer (e.g., "t100", "ironman")
+- distance: Race distance (e.g., "100 km", "Half-Iron (70.3 miles)", "Iron (140.6 miles)")
+- location: City and country (e.g., "San Francisco, CA, United States")
+- race_date: Race date
+
+Prediction columns:
+- swim_pto_rank/bike_pto_rank/run_pto_rank/overall_pto_rank: The athlete's predicted finishing position in the disciplines relative to the rest of the field
+- swim_actual_rank/bike_actual_rank/run_actual_rank/overall_actual_rank: The athlete's actual finishing position in the disciplines relative to the rest of the field
+- swim_delta/bike_delta/run_delta/overall_delta: Difference between predicted and actual rank (positive means better than predicted i.e. they overperformed, negative means worse than predicted i.e. they underperformed)
+
+Result columns:
+- place: The actual finishing position
+- swim_time/bike_time/run_time/overall_time: The athlete's actual finish time in HH:MM:SS format
+- swim_seconds/bike_seconds/run_seconds/overall_seconds: The actual finish time in seconds
+
+
+This table is used to compare how closely the athletes's race predictions matched the actual outcomes. You can calculate accuracy, identify over- or under-performing athletes, or summarize over/under performance by race, gender, or athlete.
+
+
+3. `trilytx_fct.fct_pto_scores_weekly`
 Contains weekly PTO segment scores for each athlete by distance group and overall. The higher the score, the better the athlete..
 
 Important columns:
@@ -96,14 +127,51 @@ Important columns:
 - t1_pto_score, t2_pto_score: Transition segment scores
 - rank_*: Ranking columns that compare this athlete’s score across different groupings (e.g., by distance, gender, country, birth year). These are useful for relative performance analysis.
 
+
+4. `trilytx_fct.fct_race_segment_positions`
+Contains athlete-level rank and cumulative time tracking throughout each segment of a race. This table is used to analyze how athlete position changes after each leg and transition within a race.
+
+Important columns:
+- race_results_id: Unique identifier for each athlete's race result record.
+- unique_race_id: Unique identifier for the race event.
+- athlete: Athlete’s full name UPPERCASE (e.g., “LIONEL SANDERS”).
+- athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., “lionel-sanders”).
+- gender: Athlete gender (e.g., “men” or “women”).
+- race_name: Lowercase-hyphenated race name (e.g., "san-francisco-t100-2025-women").
+- cleaned_race_name: Cleaned version of the race name (e.g., "San Francisco T100 2025 Women").
+- year: Year the race occurred.
+- race_date: Date of the race (e.g., “2025-06-01”).
+- tier: Tier classification of the race (e.g., “Gold Tier”).
+- country: Country the athlete represents (e.g., “Canada”).
+- distance: Race distance category (e.g., "Iron (140.6 miles)", "Half-Iron (70.3 miles)", "100 km", "Overall").
+- location: City and country of the race (e.g., "San Francisco, CA, United States").
+
+Cumulative time tracking (in seconds):
+- cumulative_seconds_after_swim: Time after swim segment.
+- t1_cumulative_seconds_after_t1: Time after T1 transition.
+- bike_cumulative_seconds_after_bike: Time after bike segment.
+- t2_cumulative_seconds_after_t2: Time after T2 transition.
+- run_cumulative_seconds_after_run: Final time after the run.
+
+Rank tracking:
+- rank_after_swim: Athlete’s rank immediately after swim.
+- rank_after_t1: Rank after T1.
+- rank_after_bike: Rank after bike.
+- rank_after_t2: Rank after T2.
+- rank_after_run: Final rank after run.
+
+Position change metrics (relative movement):
+- position_change_in_t1: Rank change during T1 transition.
+- position_change_on_bike: Rank change during the bike leg.
+- position_change_in_t2: Rank change during T2 transition.
+- position_change_on_run: Rank change during the run leg.
+
+
+Use this table to analyze mid-race dynamics, such as who moved up or down in rankings during specific legs or transitions.
+
+
+
 You may join the two tables using `athlete_slug`. For time-based analysis, use `reporting_week` (weekly scores) or `date` (race day).
-
-If a user references a location (like “Oceanside”), assume it refers to the full known location name such as “Oceanside, CA, United States” as found in the `location` or `race_name` columns. Prefer searching with `LIKE '%Oceanside%'` or matching known values like “Oceanside, CA, United States” from historical data.
-
-If multiple races occurred there, include them all unless the user specifies a year or date.
-
-When asking about race results, include information like the race name, gender, location, date, distance, organizer, overall time, etc. 
-When returning information about an athlete, include name, year, country, and gender. 
 
 
 Helpful tips:
@@ -113,6 +181,13 @@ Helpful tips:
 - If filtering by the latest race date, use a subquery: `WHERE date = (SELECT MAX(date) FROM ...)`.
 - Only join `trilytx_fct.fct_pto_scores_weekly` if the user explicitly references segment scores (not results) or ranking data.
 - Do **not** use `QUALIFY` unless using a window function like `RANK()` or `ROW_NUMBER()`.
+- when looking at race results, remove athletes who did not finish (overall_seconds IS NOT NULL).
+- the olympic games are in where unique_race_id like  '%olympic-games%'
+- when possible, search in the lower(cleaned_race_name) for the race name rather than the hyphenated version. For example, if the user asks about Eagleman, search for `lower(cleaned_race_name) like '%eagleman%'`.
+- If a user references a location (like “Oceanside”), assume it refers to the full known location name such as “Oceanside, CA, United States” as found in the `location` or `race_name` columns. Prefer searching with `LIKE '%Oceanside%'` or matching known values like “Oceanside, CA, United States” from historical data.If multiple races occurred there, include them all unless the user specifies a year or date.
+- When asking about race results, include information like the race name, gender, location, date, distance, organizer, overall time, place, etc. 
+- When returning information about an athlete, include name, year, country, and gender. 
+- when returning information about the latest (or most recent) race, use qualify 1 = row number() over (partition by ... order by date desc) to get the latest
 
 Your job:
 Given the user question below, generate **only a valid BigQuery SQL query** using the table and columns above. Do **not** include explanations or comments.
@@ -146,7 +221,16 @@ Here are the results:
 
 {df.to_markdown(index=False)}
 
-Write a 2-4 sentence summary in plain English."""
+Write a 2-4 sentence summary in in a plain analytical tone. if the answer is 1 word or a number, 1 sentance is fine.
+
+**Bold** the following when they appear:
+- Athlete names
+- Finish times (e.g., '1:25:30' or similar)
+- Country names
+- Finishing places (e.g., 1st, 2nd, 3rd)
+Use Markdown formatting (e.g., `**name**`) in your summary.
+
+"""
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
@@ -232,7 +316,8 @@ def main():
     with st.sidebar:
         st.header("⚙️ Optional Filters")
         athlete_name = st.text_input("Filter by athlete", value="")
-        distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Olympic", "Sprint", "100 km"])
+        distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Other middle distances", "Other long distances", "100 km"])
+        gender_filter = st.selectbox("Gender", ["", "men", "women"])
 
         st.markdown("---")
         st.subheader("💡 Try an Example")
@@ -256,6 +341,11 @@ def main():
                     filters_context += f"\n- Athlete: {athlete_name}"
                 if distance_filter:
                     filters_context += f"\n- Distance: {distance_filter}"
+                if gender_filter == "men":
+                    filters_context += "\n- Gender: men"
+                elif gender_filter == "women":
+                    filters_context += "\n- Gender: women"
+                # If it's "men and women", you likely want to skip filtering
 
                 base_context = f"{question}\n\n[Contextual Filters Applied]{filters_context if filters_context else ' None'}\n\nNote: The `athlete` column is stored in UPPERCASE."
 
@@ -291,13 +381,6 @@ def main():
                                 "\n".join(error_history)
                             )
                             df = pd.DataFrame()  # ensure df is defined so the rest of the logic still works
-                            log_error_to_bq(
-                                bq_client,
-                                "trilytx.trilytx.chatbot_error_log",
-                                question,
-                                sql,
-                                error_history[-1]  # Log the most recent error
-                            )
                             break
 
                         retry_context = (
