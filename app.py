@@ -61,7 +61,7 @@ Use the following BigQuery tables:
 Contains race-day performance results for individual athletes.
 
 Important columns:
-- athlete: Athlete’s full name (e.g., “Lionel Sanders”)
+- athlete: Athlete’s full name (e.g., “LIONEL SANDERS”)
 - athlete_slug: Lowercase, hyphenated version of the athlete's name
 - place: Athlete’s finish position in the race (1, 2, 3, etc.)
 - overall_seconds, overall_time: Total race time (in seconds and as HH:MM:SS)
@@ -72,7 +72,8 @@ Important columns:
 - race_name, unique_race_id, year, date: Race-level identifiers and timing
 - tier: Tier classification (e.g., “Gold Tier”)
 - sof: Strength of Field (numeric)
-- organizer, location: Race organizer and city/country
+- organizer: Race organizer
+- location: city/country (e.g. Miami, FL, United States, Buenos Aires, Argentina )
 
 2. `trilytx_fct.fct_pto_scores_weekly`
 Contains weekly PTO segment scores for each athlete by distance group and overall. The higher the score, the better the athlete..
@@ -94,6 +95,10 @@ Important columns:
 - rank_*: Ranking columns that compare this athlete’s score across different groupings (e.g., by distance, gender, country, birth year). These are useful for relative performance analysis.
 
 You may join the two tables using `athlete_slug`. For time-based analysis, use `reporting_week` (weekly scores) or `date` (race day).
+
+If a user references a location (like “Oceanside”), assume it refers to the full known location name such as “Oceanside, CA, United States” as found in the `location` or `race_name` columns. Prefer searching with `LIKE '%Oceanside%'` or matching known values like “Oceanside, CA, United States” from historical data.
+
+If multiple races occurred there, include them all unless the user specifies a year or date.
 
 
 Your job:
