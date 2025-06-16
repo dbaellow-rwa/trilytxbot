@@ -1,8 +1,5 @@
 # cd "C:\Users\dusti\OneDrive\Documents\GitHub\trilytxbot"
 # streamlit run app.py
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
 import json
 import pandas as pd
