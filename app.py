@@ -4,7 +4,7 @@ import os
 import json
 import pandas as pd
 import streamlit as st
-
+import altair as alt
 from openai import OpenAI
 from google.cloud import bigquery
 from google.oauth2 import service_account
@@ -18,22 +18,22 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-def load_credentials():
-    from sources_of_truth.secret_manager_utils import get_secret
-    json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
-    json_key = json.loads(json_key_str)
-
-    credentials = service_account.Credentials.from_service_account_info(json_key)
-    openai_key = get_secret("openai_rwa_1", project_id="906828770740")
-    return credentials, json_key["project_id"], openai_key
-
 # def load_credentials():
-
-#     json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+#     from sources_of_truth.secret_manager_utils import get_secret
+#     json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
 #     json_key = json.loads(json_key_str)
+
 #     credentials = service_account.Credentials.from_service_account_info(json_key)
-#     openai_key = os.environ["OPENAI_API_KEY"]
+#     openai_key = get_secret("openai_rwa_1", project_id="906828770740")
 #     return credentials, json_key["project_id"], openai_key
+
+def load_credentials():
+
+    json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+    json_key = json.loads(json_key_str)
+    credentials = service_account.Credentials.from_service_account_info(json_key)
+    openai_key = os.environ["OPENAI_API_KEY"]
+    return credentials, json_key["project_id"], openai_key
 
 # ──────────────────────────────────────────────────────────────────────────────
 # BigQuery Schema Loader
@@ -69,7 +69,8 @@ Important columns:
 - swim_seconds, bike_seconds, run_seconds: Segment times in seconds
 - distance: Full race distance label (e.g., "Half-Iron (70.3 miles)")
 - category, gender: Gender classification
-- race_name, unique_race_id, year, date: Race-level identifiers and timing
+- race_name: lowercase-hyphenated version of the race name (e.g., nice-world-championships)
+- unique_race_id, year, date: Race-level identifiers and timing
 - tier: Tier classification (e.g., “Gold Tier”)
 - sof: Strength of Field (numeric)
 - organizer: Race organizer
@@ -99,6 +100,11 @@ You may join the two tables using `athlete_slug`. For time-based analysis, use `
 If a user references a location (like “Oceanside”), assume it refers to the full known location name such as “Oceanside, CA, United States” as found in the `location` or `race_name` columns. Prefer searching with `LIKE '%Oceanside%'` or matching known values like “Oceanside, CA, United States” from historical data.
 
 If multiple races occurred there, include them all unless the user specifies a year or date.
+
+When asking about race results, include information like the race name, gender, location, date, distance, organizer, overall time, etc. 
+When returning information about an athlete, include name, year, country, and gender. 
+
+If a question is asked about "half" or "70.3", use distance = 'Half-Iron (70.3 miles)', if they say "full" or "140.6" or "ironman", use distance = "Iron (140.6 miles)"
 
 
 Your job:
@@ -144,6 +150,8 @@ Write a 2-4 sentence summary in plain English."""
 # ──────────────────────────────────────────────────────────────────────────────
 # Streamlit App
 # ──────────────────────────────────────────────────────────────────────────────
+
+
 def main():
     st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
     st.title("🤖 Trilytx Chatbot")
@@ -159,12 +167,37 @@ def main():
     if "schema" not in st.session_state:
         st.session_state.schema = extract_table_schema(bq_client, "trilytx_core", "core_race_results")
 
-    st.markdown("---")
-    st.subheader("Optional filters (used for context only)")
-    athlete_name = st.text_input("Filter by athlete (e.g., Lionel Sanders)")
-    distance_filter = st.selectbox("Distance type", options=["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Olympic", "Sprint", "100 km"])
+    if "history" not in st.session_state:
+        st.session_state.history = []
 
-    question = st.text_input("Ask your question")
+    if "votes" not in st.session_state:
+        st.session_state.votes = []
+
+    if "example_question" not in st.session_state:
+        st.session_state.example_question = ""
+
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Sidebar Filters
+    # ──────────────────────────────────────────────────────────────────────────────
+    with st.sidebar:
+        st.header("⚙️ Optional Filters")
+        athlete_name = st.text_input("Filter by athlete", value="")
+        distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Olympic", "Sprint", "100 km"])
+
+        st.markdown("---")
+        st.subheader("💡 Try an Example")
+        if st.button("How many wins does Lionel Sanders have in Oceanside?"):
+            st.session_state.example_question = "How many wins does Lionel Sanders have in Oceanside?"
+        if st.button("Who won the 70.3 world championship in 2024?"):
+            st.session_state.example_question = "Who won the 70.3 world championship in 2024?"
+        if st.button("Who is the top female cyclist today?"):
+            st.session_state.example_question = "Who is the top female cyclist today?"
+
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Main Input
+    # ──────────────────────────────────────────────────────────────────────────────
+    question = st.text_input("Ask your question", value=st.session_state.example_question)
+
     if st.button("Submit") and question:
         try:
             with st.spinner("Generating SQL and fetching results..."):
@@ -177,21 +210,64 @@ def main():
                 augmented_question = f"{question}\n\n[Contextual Filters Applied]{filters_context if filters_context else ' None'}\n\nNote: The `athlete` column is stored in UPPERCASE."
 
                 sql = generate_sql_from_question(augmented_question, st.session_state.schema, openai_key)
-                st.code(sql, language="sql")
                 df = run_bigquery(sql, bq_client)
-                st.dataframe(df)
                 summary = summarize_results(df, openai_key, question)
-                st.markdown("### 🧠 Answer")
-                st.write(summary)
 
-                st.markdown("### 🧾 Generated SQL")
-                st.code(sql, language="sql")
+                st.session_state.history.append((question, summary))
 
-                st.markdown("### 📊 Results")
-                st.dataframe(df)
+                tab1, tab2, tab3, tab4 = st.tabs(["🧠 Answer", "🧾 SQL", "📊 Results", "📈 Chart"])
+
+                with tab1:
+                    st.markdown("### 🧠 Answer")
+                    st.write(summary)
+                    st.metric("Rows Returned", len(df))
+                    if "overall_seconds" in df.columns:
+                        st.metric("Fastest Time (sec)", int(df["overall_seconds"].min()))
+                    st.markdown("#### Was this answer helpful?")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("👍 Yes", key=f"up_{len(st.session_state.history)}"):
+                            st.session_state.votes.append(("👍", question, summary))
+                            st.success("Thanks for your feedback!")
+                    with col2:
+                        if st.button("👎 No", key=f"down_{len(st.session_state.history)}"):
+                            st.session_state.votes.append(("👎", question, summary))
+                            st.warning("Thanks for your feedback!")
+
+                with tab2:
+                    st.markdown("### 🧾 Generated SQL")
+                    st.code(sql, language="sql")
+
+                with tab3:
+                    st.markdown("### 📊 Results")
+                    st.dataframe(df)
+
+                with tab4:
+                    if "athlete" in df.columns and "overall_seconds" in df.columns:
+                        st.markdown("### 📈 Chart: Athlete vs. Time")
+                        chart = alt.Chart(df).mark_bar().encode(
+                            x=alt.X("athlete:N", sort="-y"),
+                            y="overall_seconds:Q",
+                            tooltip=["athlete", "overall_seconds"]
+                        ).properties(height=400)
+                        st.altair_chart(chart, use_container_width=True)
+                    else:
+                        st.info("No chartable data in result.")
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
+    # ──────────────────────────────────────────────────────────────────────────────
+    # History Viewer
+    # ──────────────────────────────────────────────────────────────────────────────
+    with st.expander("📜 Previous Questions"):
+        for q, a in reversed(st.session_state.history):
+            st.markdown(f"**Q:** {q}\n\n**A:** {a}")
+    with st.expander("🗳️ Feedback Log"):
+        if not st.session_state.votes:
+            st.write("No feedback yet.")
+        else:
+            for vote, q, a in reversed(st.session_state.votes):
+                st.markdown(f"{vote} on **Q:** _{q}_\n> {a[:200]}...")
 
 if __name__ == "__main__":
     main()
