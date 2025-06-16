@@ -18,22 +18,22 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-# def load_credentials():
-#     from sources_of_truth.secret_manager_utils import get_secret
-#     json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
-#     json_key = json.loads(json_key_str)
-
-#     credentials = service_account.Credentials.from_service_account_info(json_key)
-#     openai_key = get_secret("openai_rwa_1", project_id="906828770740")
-#     return credentials, json_key["project_id"], openai_key
-
 def load_credentials():
-
-    json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+    from sources_of_truth.secret_manager_utils import get_secret
+    json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
     json_key = json.loads(json_key_str)
+
     credentials = service_account.Credentials.from_service_account_info(json_key)
-    openai_key = os.environ["OPENAI_API_KEY"]
+    openai_key = get_secret("openai_rwa_1", project_id="906828770740")
     return credentials, json_key["project_id"], openai_key
+
+# def load_credentials():
+
+#     json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+#     json_key = json.loads(json_key_str)
+#     credentials = service_account.Credentials.from_service_account_info(json_key)
+#     openai_key = os.environ["OPENAI_API_KEY"]
+#     return credentials, json_key["project_id"], openai_key
 
 # ──────────────────────────────────────────────────────────────────────────────
 # BigQuery Schema Loader
@@ -183,6 +183,12 @@ def main():
                 summary = summarize_results(df, openai_key, question)
                 st.markdown("### 🧠 Answer")
                 st.write(summary)
+
+                st.markdown("### 🧾 Generated SQL")
+                st.code(sql, language="sql")
+
+                st.markdown("### 📊 Results")
+                st.dataframe(df)
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
