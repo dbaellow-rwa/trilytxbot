@@ -10,7 +10,7 @@ st.markdown("""
 Welcome to **Trilytx**, where triathlon meets data.
 
 Explore:
-- 🧠 **[Chatbot](./1)Chatbot)** — Ask questions about race results, athlete stats, and predictions.
+- 🧠 **[Chatbot](./1_Chatbot)** — Ask questions about race results, athlete stats, and predictions.
 - ℹ️ **[About Trilytx](./2_About_Trilytx)** — Learn what powers this project and how it works.
 
 Use the sidebar to navigate between pages, or click a link above to get started!

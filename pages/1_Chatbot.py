@@ -59,7 +59,7 @@ You are a SQL assistant for triathlon race data in BigQuery. Use standard SQL sy
 
 Use the following BigQuery tables:
 
-1. `trilytx_fcr.fct_race_results`
+1. `trilytx_fct.fct_race_results`
 Contains race-day performance results for individual athletes.
 
 Important columns:
