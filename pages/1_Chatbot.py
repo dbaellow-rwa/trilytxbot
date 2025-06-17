@@ -210,9 +210,13 @@ Helpful Tips:
 
 - Only join `fct_pto_scores_weekly` when segment scores or rankings are referenced
 
-- For head-to-head records:
-  Group by `unique_race_id`, include `athlete_a_place`, `athlete_b_place`, and a column for the better (lower) place.
-  Only include races where both athletes are present.
+- For head-to-head race comparisons between two athletes:
+  • Join the same table to itself using `unique_race_id` and `gender`.
+  • Filter for races where both athletes competed (`athlete_slug IN (...)`).
+  • Alias the two sides as `a` and `b`, and use `a.place` and `b.place` as `athlete_a_place` and `athlete_b_place`.
+  • Group by `unique_race_id`, `race_date`, `cleaned_race_name`, `location`, and both athlete names and places.
+  • Add a column like `better_athlete = CASE WHEN a.place < b.place THEN a.athlete ELSE b.athlete END`.
+  • Use `QUALIFY` if needed to get one result per race or avoid duplicates.
 
 Your job:
 Given the user question below, generate **only a valid BigQuery SQL query** using the table and columns above. Do **not** include explanations or comments.
@@ -239,12 +243,49 @@ def run_bigquery(query: str, client: bigquery.Client) -> pd.DataFrame:
 # ──────────────────────────────────────────────────────────────────────────────
 # LLM-Based Result Summarizer
 # ──────────────────────────────────────────────────────────────────────────────
+
+def summarize_dataframe(df: pd.DataFrame) -> dict:
+    summary = {}
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            summary[col] = {
+                "type": "numeric",
+                "count": int(df[col].count()),
+                "mean": float(df[col].mean()),
+                "min": float(df[col].min()),
+                "max": float(df[col].max()),
+            }
+        elif pd.api.types.is_datetime64_any_dtype(df[col]) or pd.api.types.is_object_dtype(df[col]):
+            try:
+                col_as_dates = pd.to_datetime(df[col], errors='coerce')
+                summary[col] = {
+                    "type": "datetime",
+                    "min": str(col_as_dates.min()),
+                    "max": str(col_as_dates.max()),
+                }
+            except Exception:
+                summary[col] = {
+                    "type": "object",
+                    "unique_values": df[col].dropna().unique().tolist()[:5],
+                }
+        else:
+            summary[col] = {
+                "type": "categorical",
+                "unique_values": df[col].dropna().unique().tolist()[:5],
+                "most_common": df[col].mode().iloc[0] if not df[col].mode().empty else "N/A"
+            }
+    return summary
+
 def summarize_results(df: pd.DataFrame, openai_key: str, question: str) -> str:
     client = OpenAI(api_key=openai_key)
+    summary_dict = summarize_dataframe(df)
     prompt = f"""A user asked: \"{question}\".
 Here are the results:
 
 {df.to_markdown(index=False)}
+
+HEre is a summary of the results:
+{json.dumps(summary_dict, indent=2, default=str)}
 
 Write a 2-4 sentence summary in in a plain analytical tone. if the answer is 1 word or a number, 1 sentance is fine.
 
@@ -335,6 +376,13 @@ def main():
     if "last_df" not in st.session_state:
         st.session_state.last_df = pd.DataFrame()
 
+        # ADD THESE TWO LINES:
+    if "query_attempts_count" not in st.session_state:
+        st.session_state.query_attempts_count = 0 # Initialize with 0 attempts
+
+    if "last_duration_seconds" not in st.session_state:
+        st.session_state.last_duration_seconds = 0 # Initialize with 0 seconds
+
     # ───────────────────────────────
     # Sidebar Filters
     # ───────────────────────────────
@@ -361,8 +409,9 @@ def main():
     if st.button("Submit") and question:
         try:
             with st.spinner("Generating SQL and fetching results..."):
-                start_time = time.time()  # ⏱️ Start timer
+                start_time = time.time()
                 filters_context = ""
+                # Building filters_context based on sidebar selections (athlete_name, distance_filter, gender_filter)
                 if athlete_name:
                     filters_context += f"\n- Athlete: {athlete_name}"
                 if distance_filter:
@@ -371,42 +420,43 @@ def main():
                     filters_context += "\n- Gender: men"
                 elif gender_filter == "women":
                     filters_context += "\n- Gender: women"
-                # If it's "men and women", you likely want to skip filtering
 
+                # base_context is defined on this line:
                 base_context = f"{question}\n\n[Contextual Filters Applied]{filters_context if filters_context else ' None'}\n\nNote: The `athlete` column is stored in UPPERCASE."
-
                 max_attempts = 5
-                attempt = 1
+                st.session_state.query_attempts_count = 1
                 error_history = []
+                sql = "" # Initialize sql here as well, just in case
 
-                sql = generate_sql_from_question(base_context, openai_key)
-                # st.code(sql, language="sql")
+                # Initialize summary here with a default value
+                summary = "" # <--- ADD THIS LINE
 
-                while attempt <= max_attempts:
+                while st.session_state.query_attempts_count <= max_attempts:
                     try:
+                        sql = generate_sql_from_question(base_context, openai_key) # SQL generation here
                         df = run_bigquery(sql, bq_client)
                         break  # ✅ Success
                     except Exception as bq_error:
                         error_str = str(bq_error)
-                        error_history.append(f"Attempt {attempt}: {error_str}")
-                        st.warning(f"Attempt {attempt} failed: {error_str}")
+                        error_history.append(f"Attempt {st.session_state.query_attempts_count}: {error_str}")
+                        st.warning(f"Attempt {st.session_state.query_attempts_count} failed: {error_str}")
                         log_error_to_bq(
                             bq_client,
                             "trilytx.trilytx.chatbot_error_log",
                             question,
-                            sql,
+                            sql, # Use the latest generated SQL
                             error_str,
-                            attempt
+                            st.session_state.query_attempts_count
                         )
 
-                        if attempt == max_attempts:
-                            summary = (
+                        if st.session_state.query_attempts_count == max_attempts:
+                            summary = ( # <--- summary is assigned here
                                 f"❌ **Query failed after {max_attempts} attempts.**\n\n"
                                 f"**Your question:** {question}\n\n"
                                 f"**Error details:**\n" +
                                 "\n".join(error_history)
                             )
-                            df = pd.DataFrame()  # ensure df is defined so the rest of the logic still works
+                            df = pd.DataFrame()
                             break
 
                         retry_context = (
@@ -414,21 +464,21 @@ def main():
                             "\n".join(error_history) +
                             "\n\nPlease revise the SQL to avoid these issues. Do not use columns or aliases not listed in the Important columns: section of the prompt."
                         )
-                        sql = generate_sql_from_question(retry_context,  openai_key)
-                        # st.code(sql, language="sql")
-                        attempt += 1
-                if df.empty:
-                    summary = (
+                        # sql = generate_sql_from_question(retry_context, openai_key) # This line is usually re-generated in the loop start
+                        st.session_state.query_attempts_count += 1
+
+                # After the loop, check if df is empty or if an error led to no results
+                if df.empty and not summary: # Only assign if summary hasn't been set by a max_attempts failure
+                    summary = ( # <--- summary is assigned here
                         f"### ⚠️ No results found for your question:\n"
                         f"> **{question}**\n\n"
                         f"Try:\n"
                         f"- Relaxing filters like country, gender, or birth year\n"
                     )
+                elif not summary: # If df is not empty AND summary hasn't been set (i.e., no max_attempts failure)
+                    summary = summarize_results(df, openai_key, question) # <--- summary is assigned here
 
-                else:
-                    summary = summarize_results(df, openai_key, question)
-                end_time = time.time()  # ⏱️ End timer
-                duration_seconds = round(end_time - start_time)
+                st.session_state.last_duration_seconds = round(time.time() - start_time) # Store in session state
                 st.session_state.history.append((question, summary))
                 st.session_state.last_question = question
                 st.session_state.last_summary = summary
@@ -440,7 +490,7 @@ def main():
                     "trilytx.trilytx.chatbot_question_log",
                     question,
                     sql,
-                    summary
+                    summary # summary is guaranteed to have a value here
                 )
 
         except Exception as e:
@@ -456,8 +506,10 @@ def main():
     tab1, tab2, tab3, tab4 = st.tabs(["🧠 Answer", "🧾 SQL", "📊 Results", "📈 Chart"])
 
     with tab1:
-        query_attempts = attempt
-        st.caption(f"🕒 Answer generated in {query_attempts} query attempt{'s' if query_attempts > 1 else ''} and {duration_seconds} seconds.")
+        query_attempts_display = st.session_state.query_attempts_count
+        duration_display = st.session_state.last_duration_seconds
+
+        st.caption(f"🕒 Answer generated in {query_attempts_display} query attempt{'s' if query_attempts_display > 1 else ''} and {duration_display} seconds.")
         st.markdown("### 🧠 Answer")
         st.write(st.session_state.last_summary)
         st.markdown(f"**Rows Returned:** {len(st.session_state.last_df)}")
@@ -486,6 +538,11 @@ def main():
     with tab3:
         st.markdown("### 📊 Results")
         st.dataframe(st.session_state.last_df)
+        # if not st.session_state.last_df.empty:
+        #     # This is the crucial part that sends the DataFrame to the other page
+        #     if st.button("🔬 Analyze in new page"):
+        #         st.session_state.selected_df = st.session_state.last_df
+        #         st.switch_page("pages/3_🔬_Explore_Selected_Columns.py") # Ensure this path is correct
 
     with tab4:
         if "athlete" in st.session_state.last_df.columns and "overall_seconds" in st.session_state.last_df.columns:
