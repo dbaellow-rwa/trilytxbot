@@ -79,6 +79,7 @@ Important columns:
 - organizer: Race organizer
 - location: city/country (e.g. Miami, FL, United States, Buenos Aires, Argentina )
 
+
 2. `trilytx_fct.fct_race_results_vs_predict`
 Contains model-predicted triathlon race outcomes compared to actual race-day results, one row per athlete per race.
 
