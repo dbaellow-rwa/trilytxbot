@@ -2,6 +2,7 @@
 # streamlit run app.py
 import os
 import json
+import time
 import pandas as pd
 import streamlit as st
 import altair as alt
@@ -19,7 +20,7 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-USE_LOCAL = 0  # Set to 0 for pushing to production, 1 for local development
+USE_LOCAL = 0 # Set to 0 for pushing to production, 1 for local development
 
 def load_credentials():
     if USE_LOCAL:
@@ -177,23 +178,41 @@ Use this table to analyze mid-race dynamics, such as who moved up or down in ran
 
 
 You may join the tables using `athlete_slug` and 'unique_race_id'. For time-based analysis, use `reporting_week` (weekly scores) or `race_date` (race day).
+Do not join on cleaned_race_name as it is not unique across race years or race genders. 
 
+Helpful Tips:
 
-Helpful tips:
-- If a question is asked about "half" or "70.3", use `distance = 'Half-Iron (70.3 miles)'`, and for "full" or "140.6", use `distance = 'Iron (140.6 miles)'`.
-- T100 is a reference to `organizer = 't100'`.
-- If the user says "female", replace it with `gender = 'women'`; "male" becomes `gender = 'men'`.
-- If filtering by the latest race date, use a subquery: `WHERE date = (SELECT MAX(date) FROM ...)`.
-- Only join `trilytx_fct.fct_pto_scores_weekly` if the user explicitly references segment scores (not results) or ranking data.
-- Do **not** use `QUALIFY` unless using a window function like `RANK()` or `ROW_NUMBER()`.
-- when looking at race results, remove athletes who did not finish (overall_seconds IS NOT NULL).
-- the olympic games are in where unique_race_id like  '%olympic-games%'
-- if not specified, assume the user is asking about the most recent race or week of data available.
-- when possible, search in the lower(cleaned_race_name) for the race name rather than the hyphenated version. For example, if the user asks about Eagleman, search for `lower(cleaned_race_name) like '%eagleman%'`.
-- If a user references a location (like “Oceanside”), assume it refers to the full known location name such as “Oceanside, CA, United States” as found in the `location` or `race_name` columns. Prefer searching with `LIKE '%Oceanside%'` or matching known values like “Oceanside, CA, United States” from historical data.If multiple races occurred there, include them all unless the user specifies a year or date.
-- When asking about race results, include information like the race name, gender, location, date, distance, organizer, overall time, place, etc. 
-- When returning information about an athlete, include name, year, country, and gender. 
-- when returning information about the latest (or most recent) race, use qualify 1 = row number() over (partition by ... order by date desc) to get the latest
+- Map casual terms to filters:
+  • “Half” or “70.3” → `distance = 'Half-Iron (70.3 miles)'`
+  • “Full” or “140.6” → `distance = 'Iron (140.6 miles)'`
+  • “Female” → `gender = 'women'`, “Male” → `gender = 'men'`
+  • “T100” → `organizer = 't100'`
+
+- Filter for most recent data using:
+  `WHERE date = (SELECT MAX(date) FROM ...)`
+  or `QUALIFY ROW_NUMBER() OVER (...) = 1`
+
+- Only use `QUALIFY` with window functions like `RANK()` or `ROW_NUMBER()`
+
+- Exclude non-finishers with `overall_seconds IS NOT NULL`
+
+- Olympic races: `unique_race_id LIKE '%olympic-games%'`
+
+- Assume “latest” refers to the most recent `race_date` or `reporting_week` if unspecified
+
+- Match race names using lowercase: `LOWER(cleaned_race_name) LIKE '%eagleman%'`
+
+- Match locations (e.g., “Oceanside”) with: `location LIKE '%Oceanside%'` or `race_name LIKE '%Oceanside%'`
+
+- Include key info:
+  • Race summaries: race name, gender, location, date, distance, organizer, overall time, place
+  • Athlete details: name, year, country, gender
+
+- Only join `fct_pto_scores_weekly` when segment scores or rankings are referenced
+
+- For head-to-head records:
+  Group by `unique_race_id`, include `athlete_a_place`, `athlete_b_place`, and a column for the better (lower) place.
+  Only include races where both athletes are present.
 
 Your job:
 Given the user question below, generate **only a valid BigQuery SQL query** using the table and columns above. Do **not** include explanations or comments.
@@ -342,6 +361,7 @@ def main():
     if st.button("Submit") and question:
         try:
             with st.spinner("Generating SQL and fetching results..."):
+                start_time = time.time()  # ⏱️ Start timer
                 filters_context = ""
                 if athlete_name:
                     filters_context += f"\n- Athlete: {athlete_name}"
@@ -407,7 +427,8 @@ def main():
 
                 else:
                     summary = summarize_results(df, openai_key, question)
-
+                end_time = time.time()  # ⏱️ End timer
+                duration_seconds = round(end_time - start_time)
                 st.session_state.history.append((question, summary))
                 st.session_state.last_question = question
                 st.session_state.last_summary = summary
@@ -435,9 +456,11 @@ def main():
     tab1, tab2, tab3, tab4 = st.tabs(["🧠 Answer", "🧾 SQL", "📊 Results", "📈 Chart"])
 
     with tab1:
+        query_attempts = attempt
+        st.caption(f"🕒 Answer generated in {query_attempts} query attempt{'s' if query_attempts > 1 else ''} and {duration_seconds} seconds.")
         st.markdown("### 🧠 Answer")
         st.write(st.session_state.last_summary)
-        st.metric("Rows Returned", len(st.session_state.last_df))
+        st.markdown(f"**Rows Returned:** {len(st.session_state.last_df)}")
         if "overall_seconds" in st.session_state.last_df.columns:
             st.metric("Fastest Time (sec)", int(st.session_state.last_df["overall_seconds"].min()))
 
