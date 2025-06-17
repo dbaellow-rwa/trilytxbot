@@ -19,7 +19,7 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-USE_LOCAL = 0  # Set to 0 for pushing to production, 1 for local development
+USE_LOCAL = 1  # Set to 0 for pushing to production, 1 for local development
 
 def load_credentials():
     if USE_LOCAL:
@@ -59,21 +59,25 @@ You are a SQL assistant for triathlon race data in BigQuery. Use standard SQL sy
 
 Use the following BigQuery tables:
 
-1. `trilytx_core.core_race_results`
+1. `trilytx_fcr.fct_race_results`
 Contains race-day performance results for individual athletes.
 
 Important columns:
 - athlete: Athlete’s full name (e.g., “LIONEL SANDERS”)
 - athlete_slug: Lowercase, hyphenated version of the athlete's name
-- place: Athlete’s finish position in the race (1, 2, 3, etc.)
-- overall_seconds, overall_time: Total race time (in seconds and as HH:MM:SS)
-- swim_time, bike_time, run_time: Segment times in string format
-- swim_seconds, bike_seconds, run_seconds: Segment times in seconds
+- place: Athlete’s finish position in the race (1, 2, 3, etc.) 
+- overall_seconds: total race time in seconds. when using aggregations, use this column to calculate the fastest time, average time, etc
+- overall_time: Total race time (in seconds and as HH:MM:SS). Use this for display purposes.
+- swim_time, bike_time, run_time: Segment times in string format.  Use this for display purposes.
+- swim_seconds, bike_seconds, run_seconds: Segment times in seconds.  when using aggregations, use this column to calculate the fastest time, average time, etc
 - distance: Full race distance label (e.g., "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Short course", "Other middle distances", "Other long distances", "100 km")
 - category: race category
 - gender: Athlete gender (e.g., "men" and "women")
-- race_name: lowercase-hyphenated version of the race name (e.g., nice-world-championships, )
-- unique_race_id, year, date: Race-level identifiers and timing
+- country: Country the athlete represents (e.g., "Canada")
+- year: Year
+- race_name: Lowercase-hyphenated race name (e.g., "san-francisco-t100-2025-women")
+- cleaned_race_name: Cleaned version of the race name (e.g., "San Francisco T100 2025 Women").
+- race_date: Race date
 - tier: Tier classification (e.g., “Gold Tier”)
 - sof: Strength of Field (numeric)
 - organizer: Race organizer
@@ -172,7 +176,7 @@ Use this table to analyze mid-race dynamics, such as who moved up or down in ran
 
 
 
-You may join the two tables using `athlete_slug`. For time-based analysis, use `reporting_week` (weekly scores) or `date` (race day).
+You may join the tables using `athlete_slug` and 'unique_race_id'. For time-based analysis, use `reporting_week` (weekly scores) or `race_date` (race day).
 
 
 Helpful tips:
@@ -184,6 +188,7 @@ Helpful tips:
 - Do **not** use `QUALIFY` unless using a window function like `RANK()` or `ROW_NUMBER()`.
 - when looking at race results, remove athletes who did not finish (overall_seconds IS NOT NULL).
 - the olympic games are in where unique_race_id like  '%olympic-games%'
+- if not specified, assume the user is asking about the most recent race or week of data available.
 - when possible, search in the lower(cleaned_race_name) for the race name rather than the hyphenated version. For example, if the user asks about Eagleman, search for `lower(cleaned_race_name) like '%eagleman%'`.
 - If a user references a location (like “Oceanside”), assume it refers to the full known location name such as “Oceanside, CA, United States” as found in the `location` or `race_name` columns. Prefer searching with `LIKE '%Oceanside%'` or matching known values like “Oceanside, CA, United States” from historical data.If multiple races occurred there, include them all unless the user specifies a year or date.
 - When asking about race results, include information like the race name, gender, location, date, distance, organizer, overall time, place, etc. 
@@ -332,7 +337,7 @@ def main():
     # ───────────────────────────────
     # Main Input
     # ───────────────────────────────
-    question = st.text_input("Ask your question", value=st.session_state.example_question)
+    question = st.text_area("Ask your question", value=st.session_state.example_question, height=150)
 
     if st.button("Submit") and question:
         try:
