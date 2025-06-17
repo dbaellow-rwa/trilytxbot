@@ -19,7 +19,7 @@ from sources_of_truth.secret_manager_utils import get_secret
 
 
 
-USE_LOCAL = 1  # Set to 0 for pushing to production, 1 for local development
+USE_LOCAL = 0  # Set to 0 for pushing to production, 1 for local development
 
 def load_credentials():
     if USE_LOCAL:
