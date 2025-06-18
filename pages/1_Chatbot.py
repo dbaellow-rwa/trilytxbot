@@ -71,6 +71,9 @@ Important columns:
 - overall_time: Total race time (in seconds and as HH:MM:SS). Use this for display purposes.
 - swim_time, bike_time, run_time: Segment times in string format.  Use this for display purposes.
 - swim_seconds, bike_seconds, run_seconds: Segment times in seconds.  when using aggregations, use this column to calculate the fastest time, average time, etc
+- swim_pto_score, bike_pto_score, run_pto_score, overall_pto_score: PTO segment scores for the race. Higher is better.
+
+
 - distance: Full race distance label (e.g., "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Short course", "Other middle distances", "Other long distances", "100 km")
 - category: race category
 - gender: Athlete gender (e.g., "men" and "women")
@@ -127,7 +130,7 @@ Important columns:
 - height: Athlete height in meters (e.g., "1.77")
 - age: Athlete age at the time of the report
 - born: Athlete birth year
-- reporting_week: Date of the week this score is reporting on (e.g., "2023-09-10") - Assume the user is asking for an up-to-date week if they do not specify. up-to-date means reporting_week = date_trunc(current_date(), week)
+- reporting_week: Date of the week this score is reporting on (e.g., "2023-09-10") - Assume the user is asking for an up-to-date week if they do not specify. up-to-date means reporting_week = date_trunc(current_date(), week). If the user asks for a specific date, use date_trunc(specific_date, week) to find the reporting week.
 - distance_group: Race category (e.g., "Iron (140.6 miles)", "Half-Iron (70.3 miles)", "100 km", "Overall"). If the user does not define a distance, default to distance_group = 'Overall'
 - swim_pto_score, bike_pto_score, run_pto_score, overall_pto_score: PTO segment scores. Higher is better.
 - t1_pto_score, t2_pto_score: Transition segment scores
@@ -187,13 +190,13 @@ General Structure
 - Filter for relevant data early in the CTE chain to improve performance.
 - In the final SELECT, only return the columns needed to answer the question.
 - If possible, return a single row summarizing the results.
-- use qualify instead of limit to filter results based on window functions.
 
 Keyword Mapping for Filters
 - "Half" or "70.3" → distance = 'Half-Iron (70.3 miles)'
 - "Full" or "140.6" → distance = 'Iron (140.6 miles)'
 - "Female" → gender = 'women', "Male" → gender = 'men'
 - "T100" → organizer = 't100'
+- "DNF" or "Did Not Finish" → overall_seconds IS NULL
 
 Data Recency
 - Use: WHERE date = (SELECT MAX(date) FROM ...)
@@ -212,6 +215,9 @@ Fuzzy Matching
 Include the Following When Relevant
 - Race Summaries: race name, gender, location, date, distance, organizer, overall time, place
 - Athlete Info: name, year, country, gender
+- provider 1 row of context when able:
+    - question: When was the last time athlete x was on the podium? 
+    - answer: include race name, date, location, distance, place, overall time
 
 Conditional Joins
 - Only join fct_pto_scores_weekly if segment scores or rankings are explicitly referenced.
@@ -490,6 +496,8 @@ def main():
         duration_display = st.session_state.last_duration_seconds
 
         st.caption(f"🕒 Answer generated in {query_attempts_display} query attempt{'s' if query_attempts_display > 1 else ''} and {duration_display} seconds.")
+        if not st.session_state.last_df.empty and len(st.session_state.last_df) > 7:
+            st.warning(f"Displaying {len(st.session_state.last_df)} rows. This table is large - Trilytx sometimes has trouble parsing larger datasets. Please consider refining your question.")
         st.markdown("### 🧠 Answer")
         st.write(st.session_state.last_summary)
         st.markdown(f"**Rows Returned:** {len(st.session_state.last_df)}")
