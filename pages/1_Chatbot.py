@@ -180,47 +180,54 @@ Use this table to analyze mid-race dynamics, such as who moved up or down in ran
 You may join the tables using `athlete_slug` and 'unique_race_id'. For time-based analysis, use `reporting_week` (weekly scores) or `race_date` (race day).
 Do not join on cleaned_race_name as it is not unique across race years or race genders. 
 
-Helpful Tips:
+Helpful SQL Tips for Query Generation
 
-- Map casual terms to filters:
-  • “Half” or “70.3” → `distance = 'Half-Iron (70.3 miles)'`
-  • “Full” or “140.6” → `distance = 'Iron (140.6 miles)'`
-  • “Female” → `gender = 'women'`, “Male” → `gender = 'men'`
-  • “T100” → `organizer = 't100'`
+General Structure
+- Use CTEs (WITH clauses) to modularize and simplify logic.
+- Filter for relevant data early in the CTE chain to improve performance.
+- In the final SELECT, only return the columns needed to answer the question.
+- If possible, return a single row summarizing the results.
+- use qualify instead of limit to filter results based on window functions.
 
-- Filter for most recent data using:
-  `WHERE date = (SELECT MAX(date) FROM ...)`
-  or `QUALIFY ROW_NUMBER() OVER (...) = 1`
+Keyword Mapping for Filters
+- "Half" or "70.3" → distance = 'Half-Iron (70.3 miles)'
+- "Full" or "140.6" → distance = 'Iron (140.6 miles)'
+- "Female" → gender = 'women', "Male" → gender = 'men'
+- "T100" → organizer = 't100'
 
-- Only use `QUALIFY` with window functions like `RANK()` or `ROW_NUMBER()`
+Data Recency
+- Use: WHERE date = (SELECT MAX(date) FROM ...)
+  or QUALIFY ROW_NUMBER() OVER (...) = 1
+- Use QUALIFY only with window functions (RANK(), ROW_NUMBER()).
 
-- Exclude non-finishers with `overall_seconds IS NOT NULL`
+Filtering Rules
+- Exclude non-finishers with: overall_seconds IS NOT NULL
+- For Olympic races: unique_race_id LIKE '%olympic-games%'
+- Assume “latest” = most recent race_date or reporting_week if unspecified.
 
-- Olympic races: `unique_race_id LIKE '%olympic-games%'`
+Fuzzy Matching
+- Race name: LOWER(cleaned_race_name) LIKE '%eagleman%'
+- Location: location LIKE '%Oceanside%' or race_name LIKE '%Oceanside%'
 
-- Assume “latest” refers to the most recent `race_date` or `reporting_week` if unspecified
+Include the Following When Relevant
+- Race Summaries: race name, gender, location, date, distance, organizer, overall time, place
+- Athlete Info: name, year, country, gender
 
-- Match race names using lowercase: `LOWER(cleaned_race_name) LIKE '%eagleman%'`
+Conditional Joins
+- Only join fct_pto_scores_weekly if segment scores or rankings are explicitly referenced.
 
-- Match locations (e.g., “Oceanside”) with: `location LIKE '%Oceanside%'` or `race_name LIKE '%Oceanside%'`
+Head-to-Head Comparisons
+- Avoid self-joins—use QUALIFY with ROW_NUMBER() to isolate rows per athlete.
+- Alias as a and b, then:
+    a.place AS athlete_a_place,
+    b.place AS athlete_b_place,
+    CASE WHEN a.place < b.place THEN a.athlete ELSE b.athlete END AS better_athlete
+- Group by unique_race_id, race_date, cleaned_race_name, location, both athlete names, and places.
+- Use QUALIFY to de-duplicate when needed.
 
-- Include key info:
-  • Race summaries: race name, gender, location, date, distance, organizer, overall time, place
-  • Athlete details: name, year, country, gender
-
-- Only join `fct_pto_scores_weekly` when segment scores or rankings are referenced
-
-- For head-to-head race comparisons between two athletes:
-  • Join the same table to itself using `unique_race_id` and `gender`.
-  • Filter for races where both athletes competed (`athlete_slug IN (...)`).
-  • Alias the two sides as `a` and `b`, and use `a.place` and `b.place` as `athlete_a_place` and `athlete_b_place`.
-  • Group by `unique_race_id`, `race_date`, `cleaned_race_name`, `location`, and both athlete names and places.
-  • Add a column like `better_athlete = CASE WHEN a.place < b.place THEN a.athlete ELSE b.athlete END`.
-  • Use `QUALIFY` if needed to get one result per race or avoid duplicates.
-
-Your job:
-Given the user question below, generate **only a valid BigQuery SQL query** using the table and columns above. Do **not** include explanations or comments.
-
+Your Task:
+Based on the user question below, generate only a valid BigQuery SQL query using the columns stated above.
+Do not include explanations, comments, or markdown. Return SQL only.
 User question:
 {question}
 """
@@ -243,51 +250,24 @@ def run_bigquery(query: str, client: bigquery.Client) -> pd.DataFrame:
 # ──────────────────────────────────────────────────────────────────────────────
 # LLM-Based Result Summarizer
 # ──────────────────────────────────────────────────────────────────────────────
-
-def summarize_dataframe(df: pd.DataFrame) -> dict:
-    summary = {}
-    for col in df.columns:
-        if pd.api.types.is_numeric_dtype(df[col]):
-            summary[col] = {
-                "type": "numeric",
-                "count": int(df[col].count()),
-                "mean": float(df[col].mean()),
-                "min": float(df[col].min()),
-                "max": float(df[col].max()),
-            }
-        elif pd.api.types.is_datetime64_any_dtype(df[col]) or pd.api.types.is_object_dtype(df[col]):
-            try:
-                col_as_dates = pd.to_datetime(df[col], errors='coerce')
-                summary[col] = {
-                    "type": "datetime",
-                    "min": str(col_as_dates.min()),
-                    "max": str(col_as_dates.max()),
-                }
-            except Exception:
-                summary[col] = {
-                    "type": "object",
-                    "unique_values": df[col].dropna().unique().tolist()[:5],
-                }
-        else:
-            summary[col] = {
-                "type": "categorical",
-                "unique_values": df[col].dropna().unique().tolist()[:5],
-                "most_common": df[col].mode().iloc[0] if not df[col].mode().empty else "N/A"
-            }
-    return summary
+    # Convert rows to natural language sentences
+def row_to_sentence(row: pd.Series) -> str:
+    return ". ".join([f"{col}: {row[col]}" for col in row.index]) + "."
 
 def summarize_results(df: pd.DataFrame, openai_key: str, question: str) -> str:
     client = OpenAI(api_key=openai_key)
-    summary_dict = summarize_dataframe(df)
+    
+    rows_as_sentences = "\n".join(row_to_sentence(row) for _, row in df.iterrows())
+
     prompt = f"""A user asked: \"{question}\".
-Here are the results:
+Here are the results, described as plain language statements:
 
-{df.to_markdown(index=False)}
+{rows_as_sentences}
 
-HEre is a summary of the results:
-{json.dumps(summary_dict, indent=2, default=str)}
 
-Write a 2-4 sentence summary in in a plain analytical tone. if the answer is 1 word or a number, 1 sentance is fine.
+
+
+Write a 1-3 sentence summary in in a plain analytical tone. if the answer is 1 word or a number, 1 sentance is fine.
 
 **Bold** the following when they appear:
 - Athlete names
@@ -464,7 +444,7 @@ def main():
                             "\n".join(error_history) +
                             "\n\nPlease revise the SQL to avoid these issues. Do not use columns or aliases not listed in the Important columns: section of the prompt."
                         )
-                        # sql = generate_sql_from_question(retry_context, openai_key) # This line is usually re-generated in the loop start
+                        sql = generate_sql_from_question(retry_context, openai_key) # This line is usually re-generated in the loop start
                         st.session_state.query_attempts_count += 1
 
                 # After the loop, check if df is empty or if an error led to no results
