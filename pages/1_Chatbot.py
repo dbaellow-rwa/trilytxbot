@@ -190,6 +190,8 @@ General Structure
 - Filter for relevant data early in the CTE chain to improve performance.
 - In the final SELECT, only return the columns needed to answer the question.
 - If possible, return a single row summarizing the results.
+-  If the result involves listing multiple values (e.g., names, races, locations), use STRING_AGG to combine them into a single comma-separated string per group.
+
 
 Keyword Mapping for Filters
 - "Half" or "70.3" → distance = 'Half-Iron (70.3 miles)'
@@ -240,7 +242,7 @@ User question:
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
+        temperature=0.0,
     )
     sql = response.choices[0].message.content.strip()
     if "```sql" in sql:
@@ -286,7 +288,7 @@ Use Markdown formatting (e.g., `**name**`) in your summary.
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.5,
+        temperature=0.2,
     )
     return response.choices[0].message.content.strip()
 
