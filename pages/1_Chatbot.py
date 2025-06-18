@@ -118,7 +118,43 @@ This table is used to compare how closely the athletes's race predictions matche
 
 
 3. `trilytx_fct.fct_pto_scores_weekly`
-Contains weekly PTO segment scores for each athlete by distance group and overall. The higher the score, the better the athlete..
+Contains weekly PTO segment scores for each athlete by distance group and overall. The higher the score, the better the athlete. 
+
+- When comparing athlete rankings over time:
+  • start with these CTEs:
+```sql
+  WITH ranked_discipline_scores AS (
+  SELECT
+    athlete,
+    gender,
+    distance_group,
+    reporting_week,
+    requested_discipline_score (swim_pto_score, bike_pto_score, run_pto_score, overall_pto_score),
+    RANK() OVER (PARTITION BY gender, distance_group, reporting_week ORDER BY requested_discipline_score DESC) AS requested_discipline_rank
+  FROM
+    trilytx_fct.fct_pto_scores_weekly
+  WHERE
+    timeframe_where_clause
+    AND distance_group = 'Overall'
+    -- do not filter athletes HERE!!
+), 
+
+selected_athletes as (
+select * from ranked_discipline_scores
+where athlete in ('athlete_1', 'athlete_2', 'athlete_3'
+)
+
+SELECT
+  reporting_week,
+  STRING_AGG(CONCAT(athlete, ': ', CAST(requested_discipline_rank AS STRING)), ', ') AS athlete_discipline_ranks
+FROM
+  selected_athletes
+GROUP BY
+  reporting_week
+ORDER BY
+  reporting_week DESC
+```
+- timeframe_where_clause: Use this to filter the reporting_week to a specific range. For example, to get the last 12 weeks, use `reporting_week >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 WEEK)`. If the user does not specify a timeframe, default to the last 12 weeks.
 
 Important columns:
 - athlete_id: Unique identifier for the athlete
@@ -187,6 +223,9 @@ Helpful SQL Tips for Query Generation
 
 General Structure
 - Use CTEs (WITH clauses) to modularize and simplify logic.
+- Always alias base tables and CTEs (e.g., `trilytx_fct.fct_race_results_vs_predict AS p`)
+- Use those aliases in the `SELECT`, `WHERE`, `JOIN`, and `QUALIFY` clauses
+- Avoid using unqualified column names when multiple tables or CTEs are involved
 - Filter for relevant data early in the CTE chain to improve performance.
 - In the final SELECT, only return the columns needed to answer the question.
 - If possible, return a single row summarizing the results.
@@ -224,15 +263,36 @@ Include the Following When Relevant
 Conditional Joins
 - Only join fct_pto_scores_weekly if segment scores or rankings are explicitly referenced.
 
-Head-to-Head Comparisons
-- Avoid self-joins—use QUALIFY with ROW_NUMBER() to isolate rows per athlete.
-- Alias as a and b, then:
+Head-to-Head Race Comparisons
+- Use the following as the starting point for head-to-head comparisons:
+```sql
+WITH athlete_meetings AS (
+  SELECT 
+    a.unique_race_id,
+    a.race_date,
+    a.cleaned_race_name,
+    a.location,
+    a.athlete AS athlete_a,
     a.place AS athlete_a_place,
+    b.athlete AS athlete_b,
     b.place AS athlete_b_place,
-    CASE WHEN a.place < b.place THEN a.athlete ELSE b.athlete END AS better_athlete
-- Group by unique_race_id, race_date, cleaned_race_name, location, both athlete names, and places.
-- Use QUALIFY to de-duplicate when needed.
-
+    CASE 
+      WHEN a.place < b.place THEN a.athlete 
+      ELSE b.athlete 
+    END AS better_athlete
+  FROM 
+    trilytx_fct.fct_race_results a
+  JOIN 
+    trilytx_fct.fct_race_results b
+  ON 
+    a.unique_race_id = b.unique_race_id
+    AND a.athlete_slug = athlete_a_slug
+    AND b.athlete_slug = athlete_b_slug
+  WHERE 
+    a.overall_seconds IS NOT NULL
+    AND b.overall_seconds IS NOT NULL
+)
+```
 Your Task:
 Based on the user question below, generate only a valid BigQuery SQL query using the columns stated above.
 Do not include explanations, comments, or markdown. Return SQL only.
@@ -252,7 +312,7 @@ User question:
 # ──────────────────────────────────────────────────────────────────────────────
 # Execute SQL in BigQuery
 # ──────────────────────────────────────────────────────────────────────────────
-def run_bigquery(query: str, client: bigquery.Client) -> pd.DataFrame:
+def run_bigquery(query: str, client: bigquery.Client) -> pd.DataFrame:  
     return client.query(query).to_dataframe()
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -380,14 +440,22 @@ def main():
         distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Other middle distances", "Other long distances", "100 km"])
         gender_filter = st.selectbox("Gender", ["", "men", "women"])
 
-        st.markdown("---")
-        st.subheader("💡 Try an Example")
-        if st.button("How many wins does Lionel Sanders have in Oceanside?"):
-            st.session_state.example_question = "How many wins does Lionel Sanders have in Oceanside?"
-        if st.button("Who won the 70.3 world championship in 2024?"):
-            st.session_state.example_question = "Who won the 70.3 world championship in 2024?"
-        if st.button("Who are the top 3 female cyclists today in the 70.3 distance?"):
-            st.session_state.example_question = "Who are the top 3 female cyclists today in the 70.3 distance?"
+        with st.expander("💡 Try an Example"):
+            st.subheader("Quick Example Questions")
+            st.markdown("Click any question below to autofill the input box with a smart example. You can edit it or run it as-is.")
+
+            if st.button("🏆 How many wins does Lionel Sanders have in Oceanside?"):
+                st.session_state.example_question = "How many wins does Lionel Sanders have in Oceanside?"
+
+            if st.button("🌍 Who won the 70.3 world championship in 2024?"):
+                st.session_state.example_question = "Who won the 70.3 world championship in 2024?"
+
+            if st.button("🚴‍♀️ Who are the top 3 female cyclists today in the 70.3 distance?"):
+                st.session_state.example_question = "Who are the top 3 female cyclists today in the 70.3 distance?"
+
+            if st.button("🧠 What were the rankings after the bike section at the most recent women's T100 event?"):
+                st.session_state.example_question = "What were the rankings after the bike section at the most recent women's T100 event?"
+
 
     # ───────────────────────────────
     # Main Input
