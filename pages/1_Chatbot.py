@@ -56,7 +56,20 @@ def generate_sql_from_question(question: str,  openai_key: str) -> str:
     prompt = f"""
 You are a SQL assistant for triathlon race data in BigQuery. Use standard SQL syntax compatible with Google BigQuery. Always use fully qualified table names (`project.dataset.table`) if not specified, and prefer `SAFE_CAST`, `DATE_DIFF`, `DATE_TRUNC`, and `QUALIFY` where appropriate.
 
-
+Keyword Mapping for Filters
+- "Half" or "70.3" → race_distance = 'Half-Iron (70.3 miles)'
+--  ❌ DO NOT DO THIS:
+-- WHERE race_name LIKE '%70.3%'
+-- ✅ DO THIS INSTEAD:
+-- WHERE race_distance = 'Half-Iron (70.3 miles)'
+- "Full" or "140.6" → race_distance = 'Iron (140.6 miles)' (do not search for this in race_name)
+- "Female" → athlete_gender = 'women', "Male" → athlete_gender = 'men' (do not search for this in race_name)
+--  ❌ DO NOT DO THIS:
+-- WHERE race_name LIKE '%women%'
+-- ✅ DO THIS INSTEAD:
+-- WHERE athlete_gender = 'women'
+- "T100" → organizer = 't100 or unique_race_id like '%t100%' (do not search for race_name LIKE '%t100%')
+- "DNF" or "Did Not Finish" → overall_seconds IS NULL
 
 Use the following BigQuery tables:
 
@@ -235,12 +248,7 @@ General Structure
 - ignore null values unless specifically asked for
 - Use ORDER BY and LIMIT to control result size when appropriate.
 
-Keyword Mapping for Filters
-- "Half" or "70.3" → race_distance = 'Half-Iron (70.3 miles)'
-- "Full" or "140.6" → race_distance = 'Iron (140.6 miles)'
-- "Female" → athlete_gender = 'women', "Male" → athlete_gender = 'men'
-- "T100" → organizer = 't100'
-- "DNF" or "Did Not Finish" → overall_seconds IS NULL
+
 
 Data Recency
 - Use: WHERE date = (SELECT MAX(date) FROM ...)
@@ -363,6 +371,23 @@ User question:
     if "```sql" in sql:
         sql = sql.split("```sql")[-1].split("```")[0].strip()
     return sql
+import re
+
+def is_safe_sql(sql: str) -> bool:
+    sql_lower = sql.lower()
+
+    # Keywords to block regardless of position
+    unsafe_keywords = ['insert', 'update', 'delete', 'drop', 'alter', 'create']
+    if any(kw in sql_lower for kw in unsafe_keywords):
+        return False
+
+    # Check for semicolon usage: only allowed if it's at the very end and only once
+    semicolon_count = sql.count(';')
+    if semicolon_count > 1 or (semicolon_count == 1 and not sql.strip().endswith(';')):
+        return False
+
+    return True
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Execute SQL in BigQuery
@@ -442,7 +467,14 @@ def log_error_to_bq(client, full_table_path: str, question: str, sql: str, error
     errors = client.insert_rows_json(full_table_path, rows)
     if errors:
         st.error(f"🔴 Failed to log error to BigQuery: {errors}")
-
+def log_zero_result_to_bq(bq_client, table_name, question, sql, attempt_number):
+    rows_to_insert = [{
+        "question": question,
+        "sql": sql,
+        "attempt_number": attempt_number,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }]
+    bq_client.insert_rows_json(table_name, rows_to_insert)
 def main():
     st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
     st.title("🤖 Trilytx Chatbot")
@@ -494,6 +526,7 @@ def main():
         athlete_name = st.text_input("Filter by athlete", value="")
         distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Other middle distances", "Other long distances", "100 km"])
         gender_filter = st.selectbox("Gender", ["", "men", "women"])
+        organizer_filter = st.selectbox("Organizer", ["", "challenge", "t100", "ironman", "itu", "pto", "wtcs"])
 
         with st.expander("💡 Try an Example"):
             st.subheader("Quick Example Questions")
@@ -524,44 +557,84 @@ def main():
                 filters_context = ""
                 # Building filters_context based on sidebar selections (athlete_name, distance_filter, gender_filter)
                 if athlete_name:
-                    filters_context += f"\n- Athlete: {athlete_name}"
+                    filters_context += f"\n- athlete_name: {athlete_name}"
                 if distance_filter:
-                    filters_context += f"\n- Distance: {distance_filter}"
+                    filters_context += f"\n- race_distance: {distance_filter}"
                 if gender_filter == "men":
-                    filters_context += "\n- Gender: men"
-                elif gender_filter == "women":
-                    filters_context += "\n- Gender: women"
+                    filters_context += "\n- athlete_gender: men"
+                if gender_filter == "women":
+                    filters_context += "\n- athlete_gender: women"
+                if organizer_filter:
+                    filters_context += f"\n- organizer: {organizer_filter}"
 
                 # base_context is defined on this line:
                 base_context = f"{question}\n\n[Contextual Filters Applied]{filters_context if filters_context else ' None'}\n\nNote: The `athlete` column is stored in UPPERCASE."
                 max_attempts = 5
                 st.session_state.query_attempts_count = 1
                 error_history = []
+                zero_result_history = []
                 sql = "" # Initialize sql here as well, just in case
-
-                # Initialize summary here with a default value
                 summary = "" # <--- ADD THIS LINE
+                retry_context = base_context
 
                 while st.session_state.query_attempts_count <= max_attempts:
+                    context = base_context if st.session_state.query_attempts_count == 1 else retry_context
                     try:
-                        sql = generate_sql_from_question(base_context, openai_key) # SQL generation here
+                        sql = generate_sql_from_question(context, openai_key)
+
+                        # 🛡️ SQL safety check
+                        if not is_safe_sql(sql):
+                            error_str = "Unsafe SQL detected. Execution blocked."
+                            st.error(f"🚫 {error_str}")
+                            log_error_to_bq(
+                                bq_client,
+                                "trilytx.trilytx.chatbot_error_log",
+                                question,
+                                sql,
+                                error_str,
+                                st.session_state.query_attempts_count
+                            )
+                            summary = f"🚫 **Query blocked for safety**\n\n**Your question:** {question}\n\n**Reason:** Unsafe SQL detected."
+                            df = pd.DataFrame()
+                            break
+
+                        # Execute query
                         df = run_bigquery(sql, bq_client)
-                        break  # ✅ Success
+
+                        # If no results, log and retry
+                        if df.empty:
+                            zero_result_history.append(f"[Attempt {st.session_state.query_attempts_count}] {sql}")
+                            log_zero_result_to_bq(
+                                bq_client,
+                                "trilytx.trilytx.chatbot_zero_result_log",
+                                question,
+                                sql,
+                                st.session_state.query_attempts_count
+                            )
+                            st.warning(f"Attempt {st.session_state.query_attempts_count} returned no results.")
+                            st.session_state.query_attempts_count += 1
+                            continue  # Retry
+
+                        # ✅ Success with results
+                        break
+
                     except Exception as bq_error:
                         error_str = str(bq_error)
-                        error_history.append(f"Attempt {st.session_state.query_attempts_count}: {error_str}")
+                        error_history.append(
+                            f"[Attempt {st.session_state.query_attempts_count}]\nSQL:\n{sql}\nError:\n{error_str}"
+                        )
                         st.warning(f"Attempt {st.session_state.query_attempts_count} failed: {error_str}")
                         log_error_to_bq(
                             bq_client,
                             "trilytx.trilytx.chatbot_error_log",
                             question,
-                            sql, # Use the latest generated SQL
+                            sql,
                             error_str,
                             st.session_state.query_attempts_count
                         )
 
                         if st.session_state.query_attempts_count == max_attempts:
-                            summary = ( # <--- summary is assigned here
+                            summary = (
                                 f"❌ **Query failed after {max_attempts} attempts.**\n\n"
                                 f"**Your question:** {question}\n\n"
                                 f"**Error details:**\n" +
@@ -570,14 +643,19 @@ def main():
                             df = pd.DataFrame()
                             break
 
+                        # Retry context with both zero-result and error logs
                         retry_context = (
-                            f"{base_context}\n\n[ERROR LOG]\n" +
-                            "\n".join(error_history) +
-                            "\n\nPlease revise the SQL to avoid these issues. Do not use columns or aliases not listed in the Important columns: section of the prompt."
+                            f"{base_context}\n\n"
+                            + ("[NOTE] In the past, the following SQL returned 0 results:\n" + "\n".join(zero_result_history) + "\n\n" if zero_result_history else "")
+                            + ("[ERROR LOG] In the past, the following SQL returned BigQuery errors:\n" + "\n".join(error_history) + "\n\n" if error_history else "")
+                            + "Please revise the SQL to avoid these issues. "
+                            "Do not use columns or aliases not listed in the 'Important columns' section of the prompt, "
+                            "and ensure joins and filters are valid given the context."
                         )
-                        sql = generate_sql_from_question(retry_context, openai_key) # This line is usually re-generated in the loop start
-                        st.session_state.query_attempts_count += 1
 
+                        sql = generate_sql_from_question(retry_context, openai_key)  # <--- this is where it gets reused
+
+                        st.session_state.query_attempts_count += 1
                 # After the loop, check if df is empty or if an error led to no results
                 if df.empty and not summary: # Only assign if summary hasn't been set by a max_attempts failure
                     summary = ( # <--- summary is assigned here
