@@ -266,13 +266,18 @@ position_change_on_run: Rank change during the run leg.
 #──────────────────────────────────────────────────────────────────────────────
 def GENERAL_SQL_GUIDELINES() -> str:
     return """
+
+        If you must join table together, You may use `athlete_slug` and 'unique_race_id'. For time-based analysis, use `reporting_week` (weekly scores) or `race_date` (race day).If joining reporting_week to race_date, ensure to use DATE_TRUNC(race_date, week) to align them to the same week.
+Do not join on cleaned_race_name as it is not unique across race years or race genders. 
+        
         Keyword Mapping for Filters
 
-        "Half" or "70.3" → race_distance = 'Half-Iron (70.3 miles)' -- ❌ DO NOT DO THIS: -- WHERE race_name LIKE '%70.3%' -- ✅ DO THIS INSTEAD: -- WHERE race_distance = 'Half-Iron (70.3 miles)'
-        "Full" or "140.6" → race_distance = 'Iron (140.6 miles)' (do not search for this in race_name)
-        "Female" → athlete_gender = 'women', "Male" → athlete_gender = 'men' (do not search for this in race_name) -- ❌ DO NOT DO THIS: -- WHERE race_name LIKE '%women%' -- ✅ DO THIS INSTEAD: -- WHERE athlete_gender = 'women'
-        "T100" → organizer = 't100' or unique_race_id like '%t100%' (do not search for race_name LIKE '%t100%')
-        "DNF" or "Did Not Finish" → overall_seconds IS NULL
+        - "Half" or "70.3" → race_distance = 'Half-Iron (70.3 miles)' -- ❌ DO NOT DO THIS: -- WHERE race_name LIKE '%70.3%' -- ✅ DO THIS INSTEAD: -- WHERE race_distance = 'Half-Iron (70.3 miles)'
+        - "Full" or "140.6" → race_distance = 'Iron (140.6 miles)' (do not search for this in race_name)
+        - "Female" → athlete_gender = 'women', "Male" → athlete_gender = 'men' (do not search for this in race_name) -- ❌ DO NOT DO THIS: -- WHERE race_name LIKE '%women%' -- ✅ DO THIS INSTEAD: -- WHERE athlete_gender = 'women'
+        - "T100" → organizer = 't100' or unique_race_id like '%t100%' (do not search for race_name LIKE '%t100%')
+        - "DNF" or "Did Not Finish" → overall_seconds IS NULL
+        
         Helpful SQL Tips for Query Generation
 
         General Structure
@@ -287,26 +292,26 @@ def GENERAL_SQL_GUIDELINES() -> str:
         If the result involves listing multiple values (e.g., names, races, locations), use STRING_AGG to combine them into a single comma-separated string per group.
         Ignore null values unless specifically asked for.
         Use ORDER BY and LIMIT to control result size when appropriate.
+
         Data Recency
-
-        Use: WHERE date = (SELECT MAX(date) FROM ...) or QUALIFY ROW_NUMBER() OVER (...) = 1
-        Use QUALIFY only with window functions (RANK(), ROW_NUMBER()).
+        - Use: WHERE date = (SELECT MAX(date) FROM ...) or QUALIFY ROW_NUMBER() OVER (...) = 1
+        - Use QUALIFY only with window functions (RANK(), ROW_NUMBER()).
+        
         Filtering Rules
-
-        Exclude non-finishers with: overall_seconds IS NOT NULL
-        For Olympic races: unique_race_id LIKE '%olympic-games%'
-        Assume “latest” = most recent race_date or reporting_week if unspecified.
+        -Exclude non-finishers with: overall_seconds IS NOT NULL
+        -For Olympic races: unique_race_id LIKE '%olympic-games%'
+        -Assume “latest” = most recent race_date or reporting_week if unspecified.
+        
         Fuzzy Matching
-
-        Race name: LOWER(cleaned_race_name) LIKE '%eagleman%'
-        Location: race_location LIKE '%Oceanside%' or race_name LIKE '%Oceanside%'
+        - Race name: LOWER(cleaned_race_name) LIKE '%eagleman%'
+        - Location: race_location LIKE '%Oceanside%' or race_name LIKE '%Oceanside%'
+        
         Include the Following When Relevant
-
-        Race Summaries: race name, athlete_gender, race_location, race_date, race_distance, organizer, overall_time, athlete_finishing_place
-        Athlete Info: athlete_name, athlete_year_of_birth, athlete_country, athlete_gender
-        provide 1 row of context when able:
-        question: When was the last time athlete x was on the podium?
-        answer: include race_name, race_date, race_location, race_distance, athlete_finishing_place, overall_time 
+        - Race Summaries: race name, athlete_gender, race_location, race_date, race_distance, organizer, overall_time, athlete_finishing_place
+        - Athlete Info: athlete_name, athlete_year_of_birth, athlete_country, athlete_gender
+        - provide 1 row of context when able:
+        -- question: When was the last time athlete x was on the podium?
+        -- answer: include race_name, race_date, race_location, race_distance, athlete_finishing_place, overall_time 
         """
 def get_table_prompts() -> Dict[str, str]:
     """

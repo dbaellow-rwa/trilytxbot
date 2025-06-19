@@ -6,7 +6,7 @@ enableCORS = true
 headless = false
 
 [client]
-showErrorDetails = "none"
+showErrorDetails = "auto"
 toolbarMode = "minimal"
 
 [theme]
