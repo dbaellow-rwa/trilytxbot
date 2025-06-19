@@ -1,5 +1,5 @@
 # cd "C:\Users\dusti\OneDrive\Documents\GitHub\trilytxbot"
-# streamlit run app.py
+# streamlit run Home.py
 import os
 import json
 import time
@@ -67,7 +67,7 @@ Important columns:
 - athlete_id: Unique identifier for the athlete
 - athlete_name: Athlete’s full name (e.g., “LIONEL SANDERS”)
 - athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., “lionel-sanders”)
-- athlete_gender: Athlete gender (e.g., "men", "women")
+- athlete_gender:  Gender of the athlete (e.g., "men", "women")
 - athlete_country: Country the athlete represents (e.g., "Canada")
 - athlete_weight: Weight as string (e.g., "73kg")
 - athlete_height: Height in meters (e.g., 1.77)
@@ -100,7 +100,7 @@ Important columns:
 - cleaned_race_name: Cleaned version of the race name (e.g., "San Francisco T100 2025 Women").
 - athlete_name: Athlete’s full name, uppercased (e.g., "ASHLEIGH GENTLE")
 - athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., "ashleigh-gentle")
-- athete_gender: Athlete gender (e.g., "women", "men')
+- athlete_gender: Athlete gender (e.g., "women", "men')
 - organizer: Race organizer (e.g., "t100", "ironman")
 - race_distance: Race distance (e.g., "100 km", "Half-Iron (70.3 miles)", "Iron (140.6 miles)")
 - race_location: City and country (e.g., "San Francisco, CA, United States")
@@ -112,7 +112,7 @@ Prediction columns:
 - swim_delta/bike_delta/run_delta/overall_delta: Difference between predicted and actual rank (positive means better than predicted i.e. they overperformed, negative means worse than predicted i.e. they underperformed)
 
 Result columns:
-- place: The actual finishing position
+- athlete_finishing_place: The actual finishing position
 - swim_time/bike_time/run_time/overall_time: The athlete's actual finish time in HH:MM:SS format
 - swim_seconds/bike_seconds/run_seconds/overall_seconds: The actual finish time in seconds
 
@@ -296,6 +296,58 @@ WITH athlete_meetings AS (
     AND b.overall_seconds IS NOT NULL
 )
 ```
+
+recent race podiums ("show me the most recent mens and womens podium for the t100 event")
+- Use the following as the starting point:
+```sql
+
+WITH recent_t100_races AS (
+  SELECT 
+    unique_race_id,
+    race_date,
+    race_name,
+    race_location,
+    athlete_gender,
+    ROW_NUMBER() OVER (PARTITION BY athlete_gender ORDER BY race_date DESC) AS rn
+  FROM 
+    trilytx_fct.fct_race_results
+  WHERE 
+    overall_seconds IS NOT NULL
+),
+podium_athletes AS (
+  SELECT 
+    r.unique_race_id,
+    r.race_date,
+    r.race_name,
+    r.race_location,
+    r.athlete_gender,
+    f.athlete_name,
+    f.athlete_finishing_place,
+    f.overall_time
+  FROM 
+    recent_t100_races r
+  JOIN 
+    trilytx_fct.fct_race_results f
+  ON 
+    r.unique_race_id = f.unique_race_id
+  WHERE 
+    r.rn = 1
+    AND f.athlete_finishing_place <= 3
+)
+SELECT 
+  race_name,
+  race_date,
+  race_location,
+  athlete_gender,
+  STRING_AGG(CONCAT(athlete_name, ': ', CAST(athlete_finishing_place AS STRING), ' (', overall_time, ')'), ', ') AS podium
+FROM 
+  podium_athletes
+GROUP BY 
+  race_name, race_date, race_location, athlete_gender
+ORDER BY 
+  race_date DESC, athlete_gender
+  ```
+
 Your Task:
 Based on the user question below, generate only a valid BigQuery SQL query using the columns stated above.
 Do not include explanations, comments, or markdown. Return SQL only.
@@ -344,7 +396,7 @@ Write a 1-3 sentence summary in in a plain analytical tone. if the answer is 1 w
 - Athlete names
 - Finish times (e.g., '1:25:30' or similar)
 - Country names
-- Finishing places (e.g., 1st, 2nd, 3rd)
+- Finishing places (e.g., athlete_finishing_place = 1st, 2nd, 3rd)
 Use Markdown formatting (e.g., `**name**`) in your summary.
 
 """
