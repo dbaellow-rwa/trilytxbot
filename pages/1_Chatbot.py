@@ -25,12 +25,12 @@ USE_LOCAL = 0 # Set to 0 for pushing to production, 1 for local development
 def load_credentials():
     if USE_LOCAL:
         from sources_of_truth.secret_manager_utils import get_secret
-        json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
+        json_key_str = get_secret(secret_id="service-account-trilytxbot-key", project_id="trilytx")
         json_key = json.loads(json_key_str)
         credentials = service_account.Credentials.from_service_account_info(json_key)
         openai_key = get_secret("openai_rwa_1", project_id="906828770740")
     else:
-        json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTX"]
+        json_key_str = os.environ["GOOGLE_APPLICATION_CREDENTIALS_TRILYTXBOT"]
         json_key = json.loads(json_key_str)
         credentials = service_account.Credentials.from_service_account_info(json_key)
         openai_key = os.environ["OPENAI_API_KEY"]
