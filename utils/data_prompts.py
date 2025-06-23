@@ -6,7 +6,7 @@ from typing import Dict
 TABLE_SUMMARIES = {
     "fct_race_results": "Race-day performance results for athletes (one row per race entry). Use for finishing times, athlete info, podiums.",
     "fct_race_results_vs_predict": "Comparison between predicted and actual results. Use for performance deltas and prediction accuracy.",
-    "fct_pto_scores_weekly": "Weekly PTO scores by athlete. Use for tracking rank changes or discipline scores over time.",
+    "fct_pto_scores_weekly": "Weekly PTO scores by athlete. Use for tracking rank changes or discipline scores over time. Use this table to compare athletes to each other today, over time, or to compare athletes to themselves over time.",
     "fct_race_segment_positions": "Rank and time progression through swim, bike, run segments. Use for mid-race dynamics and position shifts (such as who moved up or down in rankings during specific legs or transitions.)"
 }
 

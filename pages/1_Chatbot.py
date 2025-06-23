@@ -147,7 +147,9 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
                     f"- Relaxing filters like country, gender, or birth year\n"
                 )
         else:
-            summary = summarize_results(df, openai_key, question_text)
+            summary = summarize_results(df, openai_key, question_text,
+                            conversational_history=st.session_state.history[-2:],  # last 2 turns (Q, A, SQL),
+                            generated_sql=sql)
 
     # Update session state with the result of the current processing
     st.session_state.last_duration_seconds = round(time.time() - start_time)
@@ -286,7 +288,7 @@ def main():
         else:
             # Display the CURRENT (latest) question and answer prominently
             st.markdown("### 🧠 Current Question & Answer")
-            st.markdown(f"**Q:** {st.session_state.last_question}")
+            st.markdown(f"**QUESTION:** {st.session_state.last_question}")
             st.write(st.session_state.last_summary)
 
             query_attempts_display = st.session_state.query_attempts_count

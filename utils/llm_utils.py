@@ -110,7 +110,9 @@ def row_to_sentence(row: pd.Series) -> str:
     """
     return ". ".join([f"{col}: {row[col]}" for col in row.index]) + "."
 
-def summarize_results(df: pd.DataFrame, openai_key: str, question: str) -> str:
+def summarize_results(df: pd.DataFrame, openai_key: str, question: str,
+                      conversational_history: list = None, generated_sql: str = "") -> str:
+
     """
     Summarizes the given DataFrame results in a plain analytical tone using the OpenAI GPT model.
     Bolds specific keywords like athlete names, finish times, countries, and finishing places.
@@ -126,20 +128,53 @@ def summarize_results(df: pd.DataFrame, openai_key: str, question: str) -> str:
     client = OpenAI(api_key=openai_key)
 
     rows_as_sentences = "\n".join(row_to_sentence(row) for _, row in df.iterrows())
+    history_context = ""
+    if conversational_history:
+        for q_prev, a_prev, _ in conversational_history:
+            history_context += f"Previous user query: '{q_prev}'\n"
+            history_context += f"Previous assistant answer: '{a_prev}'\n"
+            history_context += "---\n"
 
-    prompt = f"""A user asked: \"{question}\".
-Here are the results, described as plain language statements:
+    prompt = f"""
+    You are an AI assistant specializing in triathlon race summaries.
 
+{history_context if history_context else ""}
+Current user question: "{question}"
+Here is the SQL query that was used to retrieve the data:
+```sql
+{generated_sql}
+```
+Here are the results:
 {rows_as_sentences}
 
-Write a 1-3 sentence summary in a plain analytical tone. If the answer is 1 word or a number, 1 sentence is fine.
+🧠 IMPORTANT: Context-Aware Answering
+
+If the prior conversation included filters (e.g., specific athlete names, race years, gender categories, distances, or organizers), you must respect those filters when answering this follow-up question — even if the user doesn’t repeat them.
+
+For example:
+
+If the user previously asked about results from "last year", assume the same time frame unless they ask about a different one.
+
+If the prior answer referred to MARTEN VAN RIEL, assume "he" refers to that athlete.
+
+Do not invent filters. Only carry them forward if they were clearly used in previous questions or answers.
+
+The goal is to maintain contextual consistency across turns without adding or changing the user's intent.
+
+📝 Please return your response using this format:
+
+**ANSWER:** Write a 1–3 sentence summary in a plain analytical tone. If the answer is 1 word or a number, 1 sentence is fine.
+
+**LOGIC USED:** Explain how the SQL answered the question using 1-2 sentences like:  
+"In order to answer this question, I first did X, Y, and Z..." — describing what filters, joins, or columns were used. If specific dates are used, include the specifics. 
 
 **Bold** the following when they appear:
-- Athlete names
-- Finish times (e.g., '1:25:30' or similar)
-- Country names
-- Finishing places (e.g., athlete_finishing_place = 1st, 2nd, 3rd)
+- Athlete names  
+- Finish times (e.g., '1:25:30' or similar)  
+- Country names  
+- Finishing places (e.g., athlete_finishing_place = 1st, 2nd, 3rd)  
 Use Markdown formatting (e.g., `**name**`) in your summary.
+
 """
     response = client.chat.completions.create(
         model="gpt-4o", # Using gpt-4o for potentially better summarization
