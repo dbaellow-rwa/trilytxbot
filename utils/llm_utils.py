@@ -130,7 +130,7 @@ def summarize_results(df: pd.DataFrame, openai_key: str, question: str,
     rows_as_sentences = "\n".join(row_to_sentence(row) for _, row in df.iterrows())
     history_context = ""
     if conversational_history:
-        for q_prev, a_prev, _ in conversational_history:
+        for q_prev, a_prev, df_result, sql_prev in conversational_history:
             history_context += f"Previous user query: '{q_prev}'\n"
             history_context += f"Previous assistant answer: '{a_prev}'\n"
             history_context += "---\n"

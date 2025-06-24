@@ -50,12 +50,21 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
         start_index = max(0, len(st.session_state.history) - max_previous_qa_pairs_for_llm)
         context_history_slice = st.session_state.history[start_index:]
 
-        for q_prev, a_prev, sql_prev in context_history_slice:
+        for q_prev, a_prev, df_result, sql_prev in context_history_slice:
             conversation_context_parts.append(f"Previous user query: '{q_prev}'")
             conversation_context_parts.append(f"Assistant's previous answer: '{a_prev}'")
-            # Including previous SQL can be beneficial, but be mindful of token limits for very long queries
             conversation_context_parts.append(f"Assistant's previous SQL: ```sql\n{sql_prev}\n```")
-            conversation_context_parts.append("---") # Separator between turns for LLM clarity
+            
+            # Include top few rows from prior result
+            if isinstance(df_result, pd.DataFrame) and not df_result.empty:
+                preview_rows = df_result.head(5)
+                rows_as_sentences = "\n".join(
+                    f"{', '.join(f'{col}: {row[col]}' for col in preview_rows.columns)}"
+                    for _, row in preview_rows.iterrows()
+                )
+                conversation_context_parts.append("Previous results (structured):\n" + rows_as_sentences)
+    
+    conversation_context_parts.append("---")  # Separator
 
     if conversation_context_parts:
         llm_base_context += "\n".join(conversation_context_parts)
@@ -153,7 +162,7 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
     # Update session state with the result of the current processing
     st.session_state.last_duration_seconds = round(time.time() - start_time)
-    st.session_state.history.append((question_text, summary, sql)) # Add to history
+    st.session_state.history.append((question_text, summary,df.copy(), sql)) # Add to history
     st.session_state.last_question = question_text
     st.session_state.last_summary = summary
     st.session_state.last_df = df
@@ -303,7 +312,7 @@ def main():
             if st.session_state.last_question_was_follow_up and len(st.session_state.history) > 1:
                 st.markdown("### Previous Turn (Context for this answer)")
                 # history[-2] would be the second to last item (the one before current)
-                prev_q, prev_a, _ = st.session_state.history[-2] # Access the previous Q&A
+                prev_q, prev_a,df_result, s_sql = st.session_state.history[-2] # Access the previous Q&A
                 st.markdown(f"**Q:** {prev_q}")
                 st.markdown(f"**A:** {prev_a}")
                 st.markdown("---") # Separator
@@ -364,7 +373,7 @@ def main():
             st.write("No conversation history yet.")
         else:
             # Display history in reverse chronological order within this expander
-            for i, (q, a, s_sql) in enumerate(reversed(st.session_state.history)):
+            for i, (q, a,  df_result,s_sql) in enumerate(reversed(st.session_state.history)):
                 st.markdown(f"**Turn {len(st.session_state.history) - i}**")
                 st.markdown(f"**Q:** {q}")
                 st.markdown(f"**A:** {a}")
