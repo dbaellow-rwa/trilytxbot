@@ -1,55 +1,68 @@
-# 🏊‍♂️🚴‍♂️🏃‍♂️ Trilytx — A Triathlon SQL Chatbot
+# 🏊‍♂️🚴‍♂️🏃‍♂️ Trilytx — Natural Language Access to Triathlon Performance Data
 
-Trilytx is a domain-specific chatbot designed to make triathlon performance data accessible and insightful using natural language. Built with **Streamlit** and powered by **OpenAI GPT models**, Trilytx converts user questions into **BigQuery SQL**, executes them, and delivers easy-to-understand summaries.
+**Trilytx** is a domain-specific, LLM-driven data exploration tool that enables natural language querying of triathlon performance data. Built with **Streamlit**, integrated with **BigQuery**, and powered by **OpenAI GPT models**, Trilytx bridges the gap between raw race results and high-level analytical insights — no SQL required.
 
 ---
 
-## 📌 Executive Summary
+## 🧠 Executive Summary
 
-Trilytx bridges the gap between raw triathlon data and user-friendly insights. Whether you're a data-savvy coach or a curious fan, Trilytx helps you answer questions like:
+Designed for athletes, coaches, analysts, and fans, Trilytx enables intuitive Q&A over structured triathlon datasets. By transforming natural language into optimized SQL queries and returning human-readable summaries, it offers a user-friendly interface over a high-volume analytical backend.
 
-- _"Who won Kona in 2023?"_  
-- _"How did Lionel Sanders rank in bike segments this year?"_
+Example queries:
 
-All without needing to write a single line of SQL.
+- _“Who won Kona in 2023?”_  
+- _“Show me Gustav Iden’s average run time in 70.3 races this season”_  
+- _“Which athletes improved their bike segment time across consecutive races?”_
 
 ---
 
 ## 🚀 Key Features
 
-- **Natural Language Interface**  
-  Ask plain-English questions and get analytical answers instantly.
+- **Natural Language to SQL Translation**  
+  Uses GPT-4 to convert user queries into BigQuery-compatible SQL, with modular prompt engineering.
 
-- **BigQuery Backend**  
-  Scalable, real-time analytics over athlete-level triathlon race data.
+- **BigQuery Analytics Engine**  
+  Triathlon performance data lives in a scalable cloud warehouse, enabling subsecond query response on millions of rows.
 
-- **GPT-Powered Querying**  
-  Modular prompt templates and context-aware generation for accurate SQL.
+- **Conversational State Management**  
+  Tracks prior queries and answers for accurate follow-up handling and conversational context building.
 
-- **Heroku Deployment**  
-  Hosted as a multi-page Streamlit app with auto-scaling and CI/CD.
+- **Streamlit App Interface**  
+  Interactive, multipage frontend with support for sidebars, filters, and charts.
 
-- **Robust UX**  
-  - Follow-up question handling  
-  - Sidebar filters  
-  - Structured conversation memory  
+- **Telemetry & Logging**  
+  All interactions are logged for debugging, retraining, and insight generation.
 
-- **Feedback & Logging**  
-  All interactions logged in BigQuery for debugging, analysis, and iteration.
+- **Deployed on Heroku**  
+  Auto-scaled deployment with CI/CD integration and API key security.
 
 ---
 
-## 🧪 Future Enhancements
+## 📊 Data Science & NLP Stack
 
-- **Retrieval-Augmented Generation (RAG)**  
-  Grounding responses with metadata and semantic search for higher reliability.
+| Component         | Tool/Service               |
+|------------------|----------------------------|
+| LLM Backend       | OpenAI GPT-4 via API       |
+| Vector Prompting  | Modular SQL prompt templates |
+| SQL Execution     | Google BigQuery            |
+| Frontend UI       | Streamlit (multipage)      |
+| Hosting           | Heroku (containerized)     |
+| Logging & QA      | BigQuery (event logging)   |
 
-- **Embedding Memory**  
-  Track athlete performance trends and conversation flow.
+---
 
-- **Enterprise UX Features**  
-  - Authentication and role-based access  
-  - Export to business intelligence (BI) tools  
+## 🧪 Planned Enhancements
+
+- **RAG (Retrieval-Augmented Generation)**  
+  Enhance prompt grounding with metadata lookup and semantic vector search.
+
+- **Athlete Embedding Memory**  
+  Vectorized tracking of athlete performance trends across time and distance groups.
+
+- **Enterprise-Grade Features**  
+  - OAuth or SSO login  
+  - Role-based access control  
+  - BI export (Looker/Tableau-compatible output)
 
 ---
 
@@ -57,13 +70,10 @@ All without needing to write a single line of SQL.
 
 ```text
 trilytx/
-├── app.py                  # Main Streamlit app
-├── pages/                  # Additional Streamlit pages
-├── prompts/                # Prompt templates for GPT
-├── utils/                  # Helper functions and wrappers
+├── app.py                  # Main Streamlit app entrypoint
+├── pages/                  # Multi-page views (charts, filters, etc.)
+├── prompts/                # Modular GPT prompt templates
+├── utils/                  # Query builders, summarizers, helpers
 ├── requirements.txt        # Python dependencies
 ├── setup.sh                # Heroku deployment script
-└── README.md               # You're here!
-```
-🤝 Contributing
-Contributions are welcome! Feel free to open issues, submit pull requests, or suggest features via Discussions.
+└── README.md               # This file
