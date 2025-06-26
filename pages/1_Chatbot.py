@@ -1,10 +1,14 @@
 import os
 import sys
 import time
+import uuid
 import pandas as pd
 import streamlit as st
 import altair as alt
 import datetime
+
+
+
 
 # Add the project root directory ('trilytxbot') to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -181,6 +185,9 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
 
 def main():
+    if "user" not in st.session_state:
+        st.warning("🔒 Please log in on the Home page first.")
+        st.stop()
     st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
     st.title("🤖 Trilytx Chatbot")
     st.markdown("Ask a question about triathlon race data.")
@@ -208,7 +215,6 @@ def main():
     if "show_follow_up_input" not in st.session_state: st.session_state.show_follow_up_input = False
     if "follow_up_question_text" not in st.session_state: st.session_state.follow_up_question_text = ""
     if "last_question_was_follow_up" not in st.session_state: st.session_state.last_question_was_follow_up = False # Added this
-
 
     # ───────────────────────────────
     # Sidebar Filters
@@ -251,6 +257,7 @@ def main():
 
         if st.button("Submit Initial Question", key="submit_initial_button"):
             if question_initial:
+                st.session_state.question_id = str(uuid.uuid4())
                 with st.spinner("Processing initial question..."):
                     process_question(
                         question_initial, False, bq_client, openai_key,
@@ -270,6 +277,7 @@ def main():
 
         if st.button("Submit Follow-up Question", key="submit_follow_up_button"):
             if follow_up_question:
+                st.session_state.question_id = str(uuid.uuid4())  # <-- HERE
                 with st.spinner("Processing follow-up question..."):
                     process_question(
                         follow_up_question, True, bq_client, openai_key,
