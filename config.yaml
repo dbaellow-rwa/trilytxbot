@@ -1,0 +1,17 @@
+credentials:
+  usernames:
+    test_user:
+      email: dustin@redwestanalytics.com
+      name: test_user
+      password: $2b$12$xvRY1bi7gMKjoup3saCZn.bjutWSckzUYFbmFpnISt2qYhFEDNDbC # You'll replace this
+    admin:
+      email: drbaellow@gmail.com
+      name: admin
+      password: $2b$12$Vk1wFs3ECqVXclLJu7VR6eIPbDt.NzZekE6y0BhP.3gnA5xO6auTi # You'll replace this
+cookie:
+  expiry_days: 30
+  key: "4O9fRj4XzI13RPqeZvlkryCbUPEmGOQigql1skY7EBh5zKIw1AhGmfkExLmoR06gw33Hc_DTs6yMB-2d6K2csQ" # <<< REPLACE THIS!
+  name: trilytx_auth_cookie
+preauthorized:
+  emails:
+    - dustin@redwestanalytics.com
