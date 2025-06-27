@@ -227,6 +227,6 @@ def get_oauth():
         token_endpoint="https://oauth2.googleapis.com/token"
     )
 
-    redirect_uri = "https://www.trilytx.com" if not USE_LOCAL else "ttp://localhost:8501"
+    redirect_uri = "https://www.trilytx.com" if not USE_LOCAL else "http://localhost:8501"
 
     return oauth2, redirect_uri
