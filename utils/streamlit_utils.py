@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
 import requests as pyrequests
-
+import os
 import json
 import requests as pyrequests  # rename to avoid conflict with google.auth.transport.requests
 from streamlit_oauth import OAuth2Component
@@ -152,7 +152,7 @@ def get_oauth():
 
     oauth2 = OAuth2Component(
         client_id=creds["client_id"],
-        client_secret=creds["client_secret"],
+        client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
         authorize_endpoint=creds["auth_uri"],
         token_endpoint=creds["token_uri"]
     )
