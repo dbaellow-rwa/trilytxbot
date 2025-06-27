@@ -8,6 +8,12 @@ import json
 import requests as pyrequests  # rename to avoid conflict with google.auth.transport.requests
 from streamlit_oauth import OAuth2Component
 from config.app_config import USE_LOCAL
+import requests as pyrequests
+import os
+import json
+import requests as pyrequests  # rename to avoid conflict with google.auth.transport.requests
+from streamlit_oauth import OAuth2Component
+from config.app_config import USE_LOCAL
 
 def log_vote_to_bq(client: bigquery.Client, full_table_path: str, vote_type: str, question: str, summary: str):
     """
@@ -22,8 +28,12 @@ def log_vote_to_bq(client: bigquery.Client, full_table_path: str, vote_type: str
     """
     user_email = st.session_state.get("user", {}).get("email", "unknown")
     question_id = st.session_state.get("question_id", "unknown")
+    user_email = st.session_state.get("user", {}).get("email", "unknown")
+    question_id = st.session_state.get("question_id", "unknown")
     rows = [{
         "vote_type": vote_type,
+        "question_id": question_id,
+        "user_email": user_email,
         "question_id": question_id,
         "user_email": user_email,
         "timestamp": datetime.datetime.utcnow().isoformat()
@@ -45,8 +55,12 @@ def log_interaction_to_bq(client: bigquery.Client, full_table_path: str, questio
     """
     question_id = st.session_state.get("question_id", "unknown")
     user_email = st.session_state.get("user", {}).get("email", "unknown")
+    question_id = st.session_state.get("question_id", "unknown")
+    user_email = st.session_state.get("user", {}).get("email", "unknown")
     rows = [{
         "question": question,
+        "question_id": question_id,
+        "user_email": user_email,
         "question_id": question_id,
         "user_email": user_email,
         "generated_sql": sql,
