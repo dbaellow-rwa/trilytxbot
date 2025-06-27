@@ -18,9 +18,12 @@ import google.cloud.bigquery as bigquery
 from config.app_config import USE_LOCAL, BQ_CHATBOT_ERROR_LOG, BQ_CHATBOT_ZERO_RESULT_LOG, BQ_CHATBOT_QUESTION_LOG, BQ_CHATBOT_VOTE_FEEDBACK
 from utils.bq_utils import load_credentials, run_bigquery, extract_table_schema
 from utils.llm_utils import generate_sql_from_question_modular, summarize_results
-from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq
+from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq,  render_login_block,get_oauth
 from utils.security_utils import is_safe_sql
 
+oauth2, redirect_uri = get_oauth()
+
+  
 
 # --- Function to handle the core query processing logic ---
 # This function is called by both initial and follow-up submission buttons
@@ -220,11 +223,11 @@ def main():
     # Sidebar Filters
     # ───────────────────────────────
     with st.sidebar:
-        st.header("⚙️ Optional Filters")
-        athlete_name = st.text_input("Filter by athlete", value="")
-        distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Other middle distances", "Other long distances", "100 km"])
-        gender_filter = st.selectbox("Gender", ["", "men", "women"])
-        organizer_filter = st.selectbox("Organizer", ["", "challenge", "t100", "ironman", "itu", "pto", "wtcs"])
+        with st.expander("⚙️ Optional Filters"):
+            athlete_name = st.text_input("Filter by athlete", value="")
+            distance_filter = st.selectbox("Distance type", ["", "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Other middle distances", "Other long distances", "100 km"])
+            gender_filter = st.selectbox("Gender", ["", "men", "women"])
+            organizer_filter = st.selectbox("Organizer", ["", "challenge", "t100", "ironman", "itu", "pto", "wtcs"])
 
         with st.expander("💡 Try an Example"):
             st.subheader("Quick Example Questions")
@@ -243,7 +246,7 @@ def main():
                     st.session_state.follow_up_question_text = ""
                     st.rerun()
 
-
+        render_login_block(oauth2, redirect_uri)
     # ────────────────────────────────────────────────────────────────────────
     # Input Area: Dynamically show initial or follow-up question input
     # ────────────────────────────────────────────────────────────────────────

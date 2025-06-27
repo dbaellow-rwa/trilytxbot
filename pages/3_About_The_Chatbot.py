@@ -1,4 +1,9 @@
 import streamlit as st
+from utils.streamlit_utils import render_login_block,get_oauth
+oauth2, redirect_uri = get_oauth()
+
+with st.sidebar:
+    render_login_block(oauth2, redirect_uri)
 
 st.set_page_config(page_title="About the Trilytx Chatbot", layout="wide")
 
