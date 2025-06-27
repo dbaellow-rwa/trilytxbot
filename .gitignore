@@ -1,2 +1,5 @@
 sources_of_truth/trilytxbot-sa.json
 google_credentials.json
+.env
+*.pem
+*.key
