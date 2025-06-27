@@ -8,6 +8,7 @@ headless = false
 [client]
 showErrorDetails = "auto"
 toolbarMode = "minimal"
+layout = "wide"
 
 [theme]
 base = "light"
