@@ -161,14 +161,12 @@ def render_login_block(oauth2, redirect_uri):
             """, unsafe_allow_html=True)
 # config.py or streamlit_utils.py
 def get_oauth():
-    with open("google_credentials.json") as f:
-        creds = json.load(f)["web"]
 
     oauth2 = OAuth2Component(
-        client_id=creds["client_id"],
-        client_secret=creds["client_secret"],
-        authorize_endpoint=creds["auth_uri"],
-        token_endpoint=creds["token_uri"]
+        client_id=os.environ.get("GOOGLE_CLIENT_ID_TRILYTXBOT"),
+        client_secret=os.environ.get("GOOGLE_CLIENT_SECRET_TRILYTXBOT"),
+        authorize_endpoint="https://accounts.google.com/o/oauth2/auth",
+        token_endpoint="https://oauth2.googleapis.com/token"
     )
 
     redirect_uri = "https://www.trilytx.com" if not USE_LOCAL else creds["redirect_uris"][1]
@@ -221,16 +219,14 @@ def render_login_block(oauth2, redirect_uri):
             """, unsafe_allow_html=True)
 # config.py or streamlit_utils.py
 def get_oauth():
-    with open("google_credentials.json") as f:
-        creds = json.load(f)["web"]
 
     oauth2 = OAuth2Component(
-        client_id=creds["client_id"],
-        client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-        authorize_endpoint=creds["auth_uri"],
-        token_endpoint=creds["token_uri"]
+        client_id=os.environ.get("GOOGLE_CLIENT_ID_TRILYTXBOT"),
+        client_secret=os.environ.get("GOOGLE_CLIENT_SECRET_TRILYTXBOT"),
+        authorize_endpoint="https://accounts.google.com/o/oauth2/auth",
+        token_endpoint="https://oauth2.googleapis.com/token"
     )
 
-    redirect_uri = "https://www.trilytx.com" if not USE_LOCAL else creds["redirect_uris"][1]
+    redirect_uri = "https://www.trilytx.com" if not USE_LOCAL else "ttp://localhost:8501"
 
     return oauth2, redirect_uri
