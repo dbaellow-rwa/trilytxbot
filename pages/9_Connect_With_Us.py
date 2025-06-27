@@ -12,10 +12,15 @@ We’re building Trilytx in public — and we’d love for you to be part of it.
 Whether you’re a triathlete, data nerd, coach, or curious fan, your questions, feedback, and ideas help shape this project.
 
 ---
-
+            
+### 📝 Join the Trilytx Beta
+Want to join the leaderboard and shape the future of triathlon AI?
+[Click here to sign up for the beta](https://docs.google.com/forms/d/e/1FAIpQLScAA8LmWCd0WUupNBp9QstbAtqkJNXwqkokTlJMb731xovzRA/viewform?usp=dialog)
+             
+--- 
 ### 💬 Join the Conversation
 
-- 🗨️ [Join our Discord community](https://discord.gg/sUGvgYR8)  
+- 🗨️ [Join our Discord community](https://discord.gg/sUGvgYR8)
   Get early access updates, share insights, report bugs, and meet other triathlon data fans.
 
 - 🐙 [View the Trilytxbot GitHub repo](https://github.com/dbaellow-rwa/trilytxbot)  
