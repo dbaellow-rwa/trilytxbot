@@ -105,6 +105,7 @@ if "user" in st.session_state:
     ### 📚 Where to Go Next
 
     - 🧠 **Chatbot** — Ask questions about race results, athlete stats, and predictions  
+    - 📌 **Trilytx Executive Summary** — Overview of features, roadmap, and vision
     - 📘 **Trilytx Whitepaper** - Accelerating Triathlon Intelligence Through Human-AI Collaboration
     - ℹ️ **About The Chatbot** — Learn what powers this project
 
