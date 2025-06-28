@@ -15,6 +15,28 @@ import requests as pyrequests  # rename to avoid conflict with google.auth.trans
 from streamlit_oauth import OAuth2Component
 from config.app_config import USE_LOCAL
 
+def log_race_search(bq_client: bigquery.Client,  race_id: str, full_table_path: str,):
+    user_email = st.session_state.get("user", {}).get("email", "unknown")
+
+    row = {
+        "unique_race_id": race_id,
+        "user_email": user_email,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+    errors = bq_client.insert_rows_json(full_table_path, [row])
+    if errors:
+        st.error(f"Failed logging search: {errors}")
+def log_race_recap_generate(bq_client: bigquery.Client,  race_id: str, full_table_path: str,):
+    user_email = st.session_state.get("user", {}).get("email", "unknown")
+
+    row = {
+        "unique_race_id": race_id,
+        "user_email": user_email,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+    errors = bq_client.insert_rows_json(full_table_path, [row])
+    if errors:
+        st.error(f"Failed logging recap: {errors}")
 def log_vote_to_bq(client: bigquery.Client, full_table_path: str, vote_type: str, question: str, summary: str):
     """
     Logs user feedback (upvote/downvote) to a specified BigQuery table.
@@ -26,8 +48,6 @@ def log_vote_to_bq(client: bigquery.Client, full_table_path: str, vote_type: str
         question (str): The original question asked by the user.
         summary (str): The summary provided by the chatbot.
     """
-    user_email = st.session_state.get("user", {}).get("email", "unknown")
-    question_id = st.session_state.get("question_id", "unknown")
     user_email = st.session_state.get("user", {}).get("email", "unknown")
     question_id = st.session_state.get("question_id", "unknown")
     rows = [{

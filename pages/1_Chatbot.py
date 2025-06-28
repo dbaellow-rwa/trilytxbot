@@ -189,7 +189,7 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
 def main():
     if "user" not in st.session_state:
-        st.warning("🔒 Please log in on the Home page first.")
+        st.warning("🔒 Please log in on the sidebar first.")
         st.stop()
     st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
     st.title("🤖 Trilytx Chatbot")

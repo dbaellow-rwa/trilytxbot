@@ -2,15 +2,16 @@ import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
-from config.app_config import USE_LOCAL
+from config.app_config import USE_LOCAL, BQ_RACE_SEARCH_LOG, BQ_RACE_RECAP_LOG
 from utils.generate_race_recaps import generate_race_recap_for_id
-from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq,  render_login_block,get_oauth
+from utils.streamlit_utils import log_race_search, log_race_recap_generate, render_login_block,get_oauth
+
 oauth2, redirect_uri = get_oauth()
 
 
 # Load credentials and BigQuery client
 credentials, project_id, _ = load_credentials(USE_LOCAL)
-client = bigquery.Client(credentials=credentials, project=project_id)
+bq_client = bigquery.Client(credentials=credentials, project=project_id)
 
 st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
 st.title("🏁 Race Results Viewer")
@@ -92,7 +93,7 @@ with st.sidebar:
         query += " ORDER BY race_date DESC"
 
         job_config = bigquery.QueryJobConfig(query_parameters=params)
-        df = client.query(query, job_config=job_config).to_dataframe()
+        df = bq_client.query(query, job_config=job_config).to_dataframe()
         df["label"] = df["organizer"] + " " + df["cleaned_race_name"] + " " + df["race_gender"] + " (" + df["race_date"].astype(str) + ")"
         st.session_state.races_df = df
     render_login_block(oauth2, redirect_uri)
@@ -130,7 +131,7 @@ def get_race_results(race_id):
     job_config = bigquery.QueryJobConfig(
         query_parameters=[bigquery.ScalarQueryParameter("race_id", "STRING", race_id)]
     )
-    return client.query(query, job_config=job_config).to_dataframe()
+    return bq_client.query(query, job_config=job_config).to_dataframe()
 
 @st.cache_data(ttl=600)
 def get_race_segment_positions(race_id):
@@ -147,9 +148,10 @@ def get_race_segment_positions(race_id):
     job_config = bigquery.QueryJobConfig(
         query_parameters=[bigquery.ScalarQueryParameter("race_id", "STRING", race_id)]
     )
-    return client.query(query, job_config=job_config).to_dataframe()
+    return bq_client.query(query, job_config=job_config).to_dataframe()
 
 if st.session_state.get("load_results_clicked", False):
+    log_race_search(bq_client, st.session_state.selected_race_id, BQ_RACE_SEARCH_LOG)
     st.subheader(f"Results for {st.session_state.get('selected_race_label', 'Selected Race')}")
     results_df = get_race_results(st.session_state.selected_race_id)
 
@@ -174,7 +176,13 @@ if st.session_state.get("load_results_clicked", False):
     segment_df = get_race_segment_positions(st.session_state.selected_race_id)
     if not segment_df.empty:
         st.markdown("### 🏊🚴🏃 Segment Rankings")
-        st.dataframe(segment_df, hide_index=True)
+        display_df = segment_df.rename(columns={
+            "athlete_name": "Athlete",
+            "rank_after_swim": "Rank After Swim",
+            "rank_after_bike": "Rank After Bike",
+            "rank_after_run": "Rank After Run"
+        })
+        st.dataframe(display_df, hide_index=True)
     else:
         st.info("No segment ranking data available for this race.")
     st.markdown("### 📋 Race Recap")
@@ -182,6 +190,7 @@ if st.session_state.get("load_results_clicked", False):
 
     # Button to generate the recap
         if st.button("🧠 Generate Race Recap"):
+            log_race_recap_generate(bq_client, st.session_state.selected_race_id, BQ_RACE_RECAP_LOG)
             with st.spinner("Generating recap - Might take 10-15 seconds..."):
                 recap_text = generate_race_recap_for_id(st.session_state.selected_race_id)  # <- your logic
                 st.session_state["race_recap_text"] = recap_text
@@ -190,7 +199,7 @@ if st.session_state.get("load_results_clicked", False):
         if st.session_state.get("race_recap_text"):
             st.markdown(st.session_state["race_recap_text"])
     else:
-        st.warning("🔒 Please log in on the home page to generate the race recaps.")
+        st.warning("🔒 Please log in on the sidebar to generate the race recaps.")
     st.stop()
 
 
