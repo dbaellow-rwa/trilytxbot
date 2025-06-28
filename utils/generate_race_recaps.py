@@ -5,35 +5,17 @@ import os
 import sys
 import json
 import pandas as pd
-from google.cloud import bigquery, secretmanager, storage
-from google.oauth2 import service_account
+from google.cloud import bigquery
 from openai import OpenAI 
 from datetime import datetime
-import time
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-from email.mime.base import MIMEBase
-from email import encoders
-import smtplib
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Set up sys.path for local imports
-# ──────────────────────────────────────────────────────────────────────────────
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from sources_of_truth.secret_manager_utils import get_secret
+from utils.bq_utils import load_credentials
+from config.app_config import USE_LOCAL
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1) Credentials & BigQuery Client
 # ──────────────────────────────────────────────────────────────────────────────
-def load_credentials():
-    if "GOOGLE_APPLICATION_CREDENTIALS_TRILYTX" not in os.environ:
-        print("INFO: No GOOGLE_APPLICATION_CREDENTIALS_TRILYTX found, using ADC locally.")
-    json_key_str = get_secret(secret_id="service-account-trilytx-key", project_id="trilytx")
-    json_key = json.loads(json_key_str)
-    return json_key, service_account.Credentials.from_service_account_info(json_key)
 
 def get_bq_client(credentials, project_id):
     """
@@ -44,48 +26,6 @@ def get_bq_client(credentials, project_id):
         project=project_id
     )
 
-def get_recent_races(bq_client) :
-    """
-
-    """
-
-    query = f"""
-
-    WITH
-    recent_races AS (
-    SELECT
-        DISTINCT unique_race_id
-    FROM
-        `trilytx_core.core_race_info`
-    WHERE
-        race_date BETWEEN CURRENT_DATE() - 1
-        AND CURRENT_DATE()
-        AND organizer IS NOT NULL ),
-    race_reports_generated AS (
-    SELECT
-        DISTINCT unique_race_id
-    FROM
-        `trilytx.race_reports_generated` )
-    SELECT
-    r.unique_race_id
-    FROM
-    recent_races r
-    LEFT JOIN
-    race_reports_generated g
-    ON
-    r.unique_race_id = g.unique_race_id
-    WHERE
-    1=1
-    and g.unique_race_id IS NULL
-    -- AND r.unique_race_id in (
-    -- 'san-francisco-t100-2025-women'
-    -- 'san-francisco-t100-2025-women'
-    -- 'im-703-eagleman-2025-men', 'im-703-eagleman-2025-women'
-    -- 'san-francisco-t100-2025-men', 'san-francisco-t100-2025-women'
-    --)
-    """
-    df = bq_client.query(query).to_dataframe()
-    return set(df["unique_race_id"].astype(str).tolist())
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 2) Data Pull & Aggregation
@@ -290,11 +230,9 @@ def call_openai(prompt: str, openai_key: str) -> str:
     
 
 def generate_race_recap_for_id(specific_race_id=None):
-    current_date_est = datetime.now()
     print("🔁 Loading credentials and clients...")
-    json_key, credentials = load_credentials()
-    bq_client = get_bq_client(credentials, json_key["project_id"])
-    openai_key = get_secret(secret_id="openai_rwa_1", project_id="trilytx")
+    credentials, project_id, openai_key = load_credentials(USE_LOCAL)
+    bq_client = get_bq_client(credentials, project_id)
 
     print("📥 Pulling and summarizing race data...")
     race_predict_v_results_df = load_race_predict_v_results_data(bq_client)

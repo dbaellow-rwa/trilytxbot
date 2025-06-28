@@ -4,6 +4,8 @@ from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL
 from utils.generate_race_recaps import generate_race_recap_for_id
+from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq,  render_login_block,get_oauth
+oauth2, redirect_uri = get_oauth()
 
 
 # Load credentials and BigQuery client
@@ -59,11 +61,11 @@ with st.sidebar:
         query = """
         SELECT DISTINCT
             unique_race_id,
-            organizer,
-            race_name,
+            initcap(organizer) as organizer,
+            cleaned_race_name,
             race_date,
             DATE_TRUNC(race_date, YEAR) AS race_year,
-            race_gender,
+            initcap(race_gender) as race_gender,
             race_distance
         FROM `trilytx.trilytx_fct.fct_race_results`
         WHERE unique_race_id IS NOT NULL
@@ -91,8 +93,9 @@ with st.sidebar:
 
         job_config = bigquery.QueryJobConfig(query_parameters=params)
         df = client.query(query, job_config=job_config).to_dataframe()
-        df["label"] = df["organizer"] + " " + df["race_name"] + " " + df["race_gender"] + " (" + df["race_date"].astype(str) + ")"
+        df["label"] = df["organizer"] + " " + df["cleaned_race_name"] + " " + df["race_gender"] + " (" + df["race_date"].astype(str) + ")"
         st.session_state.races_df = df
+    render_login_block(oauth2, redirect_uri)
 
 # ────────────────
 # Race Selector
@@ -154,24 +157,40 @@ if st.session_state.get("load_results_clicked", False):
         st.warning("No results found for this race.")
     else:
         st.markdown(f"**{len(results_df)} athletes** found.")
-        st.dataframe(results_df)
+        display_df = results_df.drop(columns=["overall_seconds"]).rename(columns={
+            "athlete_finishing_place": "Place",
+            "athlete_name": "Athlete",
+            "athlete_country": "Country",
+            "swim_time": "Swim",
+            "t1_time": "T1",
+            "bike_time": "Bike",
+            "t2_time": "T2",
+            "run_time": "Run",
+            "overall_time": "Finish Time"
+        })
+        st.dataframe(display_df, hide_index=True)
 
             # Optional segment rank table
     segment_df = get_race_segment_positions(st.session_state.selected_race_id)
     if not segment_df.empty:
         st.markdown("### 🏊🚴🏃 Segment Rankings")
-        st.dataframe(segment_df)
+        st.dataframe(segment_df, hide_index=True)
     else:
         st.info("No segment ranking data available for this race.")
-    # Button to generate the recap
-    if st.button("🧠 Generate Race Recap"):
-        with st.spinner("Generating recap - Might take 10-15 seconds..."):
-            recap_text = generate_race_recap_for_id(st.session_state.selected_race_id)  # <- your logic
-            st.session_state["race_recap_text"] = recap_text
+    st.markdown("### 📋 Race Recap")
+    if "user" in st.session_state:
 
-    # Show the recap if generated
-    if st.session_state.get("race_recap_text"):
-        st.markdown("### 📋 Race Recap")
-        st.markdown(st.session_state["race_recap_text"])
+    # Button to generate the recap
+        if st.button("🧠 Generate Race Recap"):
+            with st.spinner("Generating recap - Might take 10-15 seconds..."):
+                recap_text = generate_race_recap_for_id(st.session_state.selected_race_id)  # <- your logic
+                st.session_state["race_recap_text"] = recap_text
+
+        # Show the recap if generated
+        if st.session_state.get("race_recap_text"):
+            st.markdown(st.session_state["race_recap_text"])
+    else:
+        st.warning("🔒 Please log in on the home page to generate the race recaps.")
+    st.stop()
 
 
