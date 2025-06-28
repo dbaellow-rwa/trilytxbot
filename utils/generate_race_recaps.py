@@ -230,11 +230,9 @@ def call_openai(prompt: str, openai_key: str) -> str:
     
 
 def generate_race_recap_for_id(specific_race_id=None):
-    print("🔁 Loading credentials and clients...")
     credentials, project_id, openai_key = load_credentials(USE_LOCAL)
     bq_client = get_bq_client(credentials, project_id)
 
-    print("📥 Pulling and summarizing race data...")
     race_predict_v_results_df = load_race_predict_v_results_data(bq_client)
     race_segment_position_df = load_race_segment_positions_data(bq_client)
     specific_race_results_text = generate_race_results_detail(race_predict_v_results_df, specific_race_id)
