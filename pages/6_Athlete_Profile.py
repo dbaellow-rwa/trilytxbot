@@ -93,17 +93,36 @@ with st.sidebar:
     st.markdown("### 🔍 Find an Athlete")
 
     athlete_query = st.text_input("Enter athlete name:", "")
+
     if st.button("🔍 Search Athlete"):
         if athlete_query:
             st.session_state.selected_athlete = athlete_query.strip()
         else:
             st.warning("Please enter an athlete name.")
 
+    with st.expander("💡 Try an Example Athlete"):
+        st.subheader("Popular Athletes")
+        st.markdown("Click a name to autofill the search box.")
+
+        example_athletes = {
+            "🌊 Ashleigh Gentle": "Ashleigh Gentle",
+            "🔥 Gustav Iden": "Gustav Iden",
+            "⚡ Lionel Sanders": "Lionel Sanders",
+            "🌍 Taylor Knibb": "Taylor Knibb",
+            "🚴 Sam Long": "Sam Long"
+        }
+
+        for button_text, athlete_name in example_athletes.items():
+            if st.button(button_text, key=f"example_{hash(athlete_name)}"):
+                st.session_state.selected_athlete = athlete_name
+                st.rerun()
 
     render_login_block(oauth2, redirect_uri)
 
+# Log the search if an athlete was selected
 if "selected_athlete" in st.session_state:
     log_athlete_search(bq_client, st.session_state.selected_athlete, BQ_ATHLETE_SEARCH_LOG)
+
 
     athlete_name = st.session_state.selected_athlete
     race_results_df = get_athlete_race_results(bq_client, athlete_name)

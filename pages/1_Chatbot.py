@@ -20,6 +20,7 @@ from utils.bq_utils import load_credentials, run_bigquery, extract_table_schema
 from utils.llm_utils import generate_sql_from_question_modular, summarize_results
 from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq,  render_login_block,get_oauth
 from utils.security_utils import is_safe_sql
+from utils.about_the_chatbot import render_about
 
 oauth2, redirect_uri = get_oauth()
 
@@ -188,11 +189,13 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
 
 def main():
+    st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
+    st.title("🤖 Trilytx Chatbot")
+    render_about()
     if "user" not in st.session_state:
         st.warning("🔒 Please log in on the sidebar first.")
         st.stop()
-    st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
-    st.title("🤖 Trilytx Chatbot")
+
     st.markdown("Ask a question about triathlon race data.")
     # st.write(f"DEBUG: Streamlit Version: {st.__version__}") # <--- ADD THIS LINE HERE
 
