@@ -300,10 +300,10 @@ Important columns:
 
 Cumulative time tracking (in seconds):
 - cumulative_seconds_after_swim: Time after swim segment.
-- t1_cumulative_seconds_after_t1: Time after T1 transition.
-- bike_cumulative_seconds_after_bike: Time after bike segment.
-- t2_cumulative_seconds_after_t2: Time after T2 transition.
-- run_cumulative_seconds_after_run: Final time after the run.
+- cumulative_seconds_after_t1: Time after T1 transition.
+- cumulative_seconds_after_bike: Time after bike segment.
+- cumulative_seconds_after_t2: Time after T2 transition.
+- cumulative_seconds_after_run: Final time after the run.
 
 Rank tracking:
 - rank_after_swim: Athlete’s rank immediately after swim.

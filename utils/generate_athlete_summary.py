@@ -134,8 +134,8 @@ def generate_race_position_detail(df: pd.DataFrame, specific_athlete: str) -> st
         return f"No data found for race: {specific_athlete}"
 
     selected_cols = [
-        "athlete_name",  "cumulative_seconds_after_swim", "t1_cumulative_seconds_after_t1", "bike_cumulative_seconds_after_bike",
-        "t2_cumulative_seconds_after_t2", "run_cumulative_seconds_after_run", "rank_after_swim", "rank_after_t1", "rank_after_bike",
+        "athlete_name",  "cumulative_seconds_after_swim", "cumulative_seconds_after_t1", "cumulative_seconds_after_bike",
+        "cumulative_seconds_after_t2", "cumulative_seconds_after_run", "rank_after_swim", "rank_after_t1", "rank_after_bike",
         "rank_after_t2", "rank_after_run", "position_change_in_t1", "position_change_on_bike", "position_change_in_t2", "position_change_on_run",
         "race_position_change_bike_rank_desc", "race_position_change_run_rank_desc","race_position_change_bike_rank_asc", "race_position_change_run_rank_asc"
     ]

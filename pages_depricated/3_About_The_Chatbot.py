@@ -99,7 +99,7 @@ Tracks athlete progress and rank at each stage of a race.
 
 **Key fields:**
 - `athlete`, `race_name`, `gender`, `race_date`, `tier`, `distance`, `location`
-- Cumulative time after each segment: `cumulative_seconds_after_swim`, `bike_cumulative_seconds_after_bike`, etc.
+- Cumulative time after each segment: `cumulative_seconds_after_swim`, `cumulative_seconds_after_bike`, etc.
 - Ranks after each segment: `rank_after_swim`, `rank_after_bike`, etc.
 - Position changes: `position_change_in_t1`, `position_change_on_bike`, etc.
 - Use this table to analyze pacing, segment position changes, or comeback performance during a race.
