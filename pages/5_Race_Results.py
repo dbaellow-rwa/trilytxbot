@@ -185,14 +185,26 @@ if st.session_state.get("load_results_clicked", False):
         st.dataframe(display_df, hide_index=True)
     else:
         st.info("No segment ranking data available for this race.")
-    st.markdown("### 📋 Race Recap")
+    st.markdown("### 📋 LLM Generated Race Recap")
     if "user" in st.session_state:
 
     # Button to generate the recap
+    # Store user instructions in session state
+        if "recap_instructions" not in st.session_state:
+            st.session_state["recap_instructions"] = ""
+
+        st.markdown("#### ✍️ Optional Instructions for the Recap")
+        st.session_state["recap_instructions"] = st.text_area(
+            "Customize how the recap is written (e.g., focus on the bike segment, write it like a pirate):",
+            placeholder="Write it in the style of a sports announcer... 🏁",
+            key="recap_instructions_input"
+)
+
         if st.button("🧠 Generate Race Recap"):
             log_race_recap_generate(bq_client, st.session_state.selected_race_id, BQ_RACE_RECAP_LOG)
-            with st.spinner("Generating recap - Might take 10-15 seconds..."):
-                recap_text = generate_race_recap_for_id(st.session_state.selected_race_id)  # <- your logic
+            with st.spinner("Generating recap - This might take 10-15 seconds..."):
+                instructions = st.session_state.get("recap_instructions", "")
+                recap_text = generate_race_recap_for_id(st.session_state.selected_race_id, st.session_state.recap_instructions)
                 st.session_state["race_recap_text"] = recap_text
 
         # Show the recap if generated

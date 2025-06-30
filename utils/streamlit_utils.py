@@ -15,6 +15,18 @@ import requests as pyrequests  # rename to avoid conflict with google.auth.trans
 from streamlit_oauth import OAuth2Component
 from config.app_config import USE_LOCAL
 
+def log_athlete_search(bq_client: bigquery.Client,  race_id: str, full_table_path: str,):
+    user_email = st.session_state.get("user", {}).get("email", "unknown")
+
+    row = {
+        "athlete_name": race_id,
+        "user_email": user_email,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+    errors = bq_client.insert_rows_json(full_table_path, [row])
+    if errors:
+        st.error(f"Failed logging search: {errors}")
+
 def log_race_search(bq_client: bigquery.Client,  race_id: str, full_table_path: str,):
     user_email = st.session_state.get("user", {}).get("email", "unknown")
 

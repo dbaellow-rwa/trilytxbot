@@ -3,7 +3,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Application Settings
 # ──────────────────────────────────────────────────────────────────────────────
-USE_LOCAL = 0 # Set to 0 for pushing to production, 1 for local development
+USE_LOCAL = 1 # Set to 0 for pushing to production, 1 for local development
 
 # ──────────────────────────────────────────────────────────────────────────────
 # BigQuery Logging Table Paths
@@ -16,3 +16,4 @@ BQ_CHATBOT_QUESTION_LOG = "trilytx.trilytx.chatbot_question_log"
 BQ_CHATBOT_VOTE_FEEDBACK = "trilytx.trilytx.chatbot_vote_feedback"
 BQ_RACE_SEARCH_LOG = "trilytx.trilytx.race_search_log"
 BQ_RACE_RECAP_LOG = "trilytx.trilytx.race_recap_generate_log"
+BQ_ATHLETE_SEARCH_LOG = "trilytx.trilytx.athlete_search_log"

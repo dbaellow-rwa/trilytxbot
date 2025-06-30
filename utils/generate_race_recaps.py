@@ -106,7 +106,7 @@ def format_historical_race_rows(df: pd.DataFrame) -> str:
 
 
 # ---
-def construct_race_report_prompt(specific_race_text, specific_race_positions_text):
+def construct_race_report_prompt(specific_race_text, specific_race_positions_text, instructions: str = "") -> str:
     return f"""
 You are a professional sports performance analyst. Below are two tables from a triathlon that took place this weekend.
 
@@ -191,6 +191,9 @@ For the top 3 finishers:
   - If they have multiple podiums or a big improvement over past results, point it out.
   - Use specific past race names and dates to make the analysis feel grounded.
 
+### Additional Instructions from the User:
+{instructions if instructions else "None"}
+
 ### Points you have halucinated in the past:
 - overall_pto_rank refers to the athlete's incoming overall rank **relative to the other participants in the field**
 ---
@@ -229,7 +232,7 @@ def call_openai(prompt: str, openai_key: str) -> str:
         return "Error generating AI content - please see the data below for detailed information."
     
 
-def generate_race_recap_for_id(specific_race_id=None):
+def generate_race_recap_for_id(specific_race_id: str, instructions: str = ""):
     credentials, project_id, openai_key = load_credentials(USE_LOCAL)
     bq_client = get_bq_client(credentials, project_id)
 
@@ -241,7 +244,8 @@ def generate_race_recap_for_id(specific_race_id=None):
 
     race_report_prompt = construct_race_report_prompt(
         specific_race_results_text, 
-        specific_race_positions_text)
+        specific_race_positions_text,
+        instructions)
 
     recap_response = call_openai(race_report_prompt, openai_key)
     return recap_response
@@ -253,5 +257,7 @@ def generate_race_recap_for_id(specific_race_id=None):
 # ──────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     arg_race_id = sys.argv[1] if len(sys.argv) > 1 else None
-    generate_race_recap_for_id(specific_race_id=arg_race_id)
+    arg_instructions = sys.argv[2] if len(sys.argv) > 2 else ""
+
+    generate_race_recap_for_id(specific_race_id=arg_race_id, instructions=arg_instructions)
 

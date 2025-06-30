@@ -10,6 +10,8 @@ st.markdown("""
 ### 📌 Executive Summary  
 **Trilytx** is a domain-specific AI assistant that makes triathlon performance data accessible through natural language. Built with Streamlit and powered by OpenAI’s GPT models, it translates user questions into BigQuery SQL, retrieves structured results, and delivers readable, insightful summaries.
 
+Now, Trilytx also generates full **LLM-powered race recaps** and **athlete summaries**, transforming raw race data into compelling narratives and personalized performance reviews — tailored to the user’s tone, focus, or audience.
+
 ---
 
 ### 🚀 Key Features  
@@ -18,6 +20,22 @@ st.markdown("""
 Ask questions like:  
 • “Who won Kona in 2023?”  
 • “How did Lionel Sanders perform in bike segments this year?”
+
+**Race Recap Generator (NEW)**  
+Generate AI-written recaps for any race, with sections like:  
+• 🏅 Podium Highlights  
+• 📈 Overperformers  
+• 📉 Underperformers  
+• 📊 Segment Trends  
+• 🏁 Analyst Commentary  
+Supports custom instructions (e.g., “Focus on the swim” or “Write it like a pirate”).
+
+**Athlete Summary Generator (NEW)**  
+Get personalized summaries for any athlete:  
+• Trends in race performance over time  
+• Segment strengths and weaknesses  
+• Notable finishes and recent momentum  
+Customize with prompts like “Focus on 70.3 events” or “Compare swim vs run performance.”
 
 **BigQuery Backend**  
 Fast, scalable querying over detailed athlete- and race-level data.
@@ -29,10 +47,10 @@ Modular prompt templates drive accurate, domain-aware SQL generation.
 Deployed as a responsive multi-page app with CI/CD and auto-scaling.
 
 **Thoughtful UX Design**  
-Includes sidebar filters, follow-up question support, and chat memory.
+Includes sidebar filters, follow-up question support, chat memory, and recap customization.
 
 **Feedback & Logging**  
-All interactions are logged to BigQuery for quality review and iteration.
+All queries, summaries, and recaps are logged to BigQuery for ongoing model training and quality improvement.
 
 ---
 

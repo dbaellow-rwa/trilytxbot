@@ -10,77 +10,96 @@ st.markdown("""
 # Trilytx Whitepaper: Accelerating Triathlon Intelligence Through Human-AI Collaboration
 
 ## Overview
-Trilytx is building the world's first AI-powered triathlon data assistant designed to answer natural language questions about races, athletes, matchups, and trends. By blending structured data with generative AI and user feedback, Trilytx delivers accurate, fast, and context-aware answers that evolve with the sport.
+**Trilytx** is building the world’s first AI-powered triathlon data assistant — capable of answering natural language questions, generating full-length race recaps, and surfacing athlete insights from structured performance data. By combining athlete stats with large language models (LLMs) and human feedback, Trilytx delivers fast, contextual, and evolving insights for fans, coaches, and media pros.
 
 ## Problem Statement
-Despite the explosion of triathlon data across results databases, leaderboards, and athlete histories, it remains difficult for fans, coaches, and athletes to:
+Triathlon data is abundant — but insight is buried:
 
-- Answer comparative or contextual queries (e.g., "Has Sam Long ever beaten Lionel Sanders in a 70.3?")
-- Explore trends in performance, training load, or seasonal patterns
-- Generate quick insights without manual filtering and analysis
+- Fans can’t easily ask things like “How has Lucy Charles performed in swims over the last 2 years?”
+- Coaches struggle to track segment trends and position changes across races  
+- Broadcasters spend hours pulling stat packs from scattered sources  
 
-Existing tools are either too rigid (filters, charts) or too opaque (news articles, subjective commentary).
+Existing tools are either too rigid (charts, filters) or too generic (AI with no sport context).
 
 ## Our Approach
-Trilytx is a hybrid system built on three pillars:
+Trilytx combines three core layers:
 
 1. **Structured Data (BigQuery)**  
-   - Centralized athlete, race, and result tables  
-   - Weekly PTO scoring and historical matchup data
+   - Central warehouse with results, splits, rankings, athlete bios, and projections  
+   - Weekly PTO scores and trend metrics down to the segment level
 
 2. **Retrieval-Augmented Generation (RAG)**  
-   - Embedding search across athlete bios, race recaps, and results context  
-   - Generated context becomes input to LLM prompting
+   - Embedding-based search over athlete bios, race history, and user feedback  
+   - Context-rich prompt assembly feeds LLMs for more accurate outputs
 
-3. **User-Validated Fine-Tuning Loop**  
-   - All user questions, answers, and feedback (👍/👎) are logged  
-   - High-confidence responses become training examples for a fine-tuned OpenAI model  
-   - The system improves over time, becoming more accurate, domain-specific, and efficient
+3. **Human-in-the-Loop Feedback**  
+   - Every query, answer, and vote is logged  
+   - High-confidence outputs are used to fine-tune our domain models  
+   - Performance improves with every real-world triathlon question
 
 ## Current Architecture
-- **Input**: Natural language question from user  
-- **LLM 1**: SQL generation (OpenAI GPT-4, prompted with schema/table context)  
-- **Data**: Query runs against BigQuery triathlon warehouse  
-- **LLM 2**: Answer generation (summarizes results into plain English)  
-- **Feedback**: Users vote on response quality (stored for supervised training)
+- **Input**: Natural language query or recap request  
+- **LLM 1**: SQL generation via OpenAI (GPT-4) with structured schema context  
+- **Execution**: Query runs on BigQuery's triathlon warehouse  
+- **LLM 2**: Generates recap or summary in plain English  
+- **Logging**: Results, feedback, and metadata stored for fine-tuning + RAG
+
+## 🔥 New Capability: Athlete Profiles with Trend Tracking
+Users can now view rich, interactive athlete dashboards:
+
+- Full race history including splits, finish times, and strength of field  
+- Rankings and PTO segment scores across the past 2 years  
+- Breakdown by swim, bike, run, and overall performance  
+- Automatically detects rank shifts (e.g., national rank, gender-specific rank)  
+- Built-in LLM summaries for recap generation or newsletter copy
+
+## LLM-Powered Recaps
+Generate custom long-form recaps for any athlete or race:
+
+- Highlights podiums, segment performance, and surprises  
+- Supports natural language prompts like “Focus on the bike” or “Make it poetic”  
+- Useful for post-race reports, media previews, and broadcast prep  
 
 ## Beta Participation
-To improve accuracy, we launched a **Beta Program** that invites triathlon fans to:
+Trilytx is in **Beta**, and we’re inviting testers to:
 
-- Ask real questions about races, athletes, and events  
-- Vote on the quality of answers (👍/👎)  
-- Earn rewards and leaderboard status based on participation
+- Ask questions about athletes, races, or segment trends  
+- Build custom recaps using natural instructions  
+- Vote on summary quality to train our models  
+- Earn early access, swag, and leaderboard recognition
 
 ## Fine-Tuning Strategy
-We collect the following for each user interaction:
+We log and use the following for each interaction:
 
-- Question (user text)  
+- Original user query  
 - Generated SQL  
-- Final answer  
-- Upvote/downvote  
+- Result summary or recap  
+- Upvote/downvote feedback
 
-Fine-tuned models will be trained on two formats:
+These are used to train two custom models:
 
-- **Chat-style (Q+A)**: For answer generation  
-- **Function-style (Q+SQL)**: For SQL generation  
+- **SQL generation (function-first)**  
+- **Answer generation (chat-style)**  
 
-By reducing reliance on large prompts and few-shot templates, we expect:
+Fine-tuning benefits:
 
-- 2× faster response time  
+- 2× faster query handling  
 - 40–70% fewer hallucinations  
-- More interpretable and accurate SQL for complex triathlon queries
+- Stronger sport-specific reasoning
 
 ## Future Vision
-Once fine-tuned, Trilytx will serve:
+Once fine-tuned and deployed, Trilytx will support:
 
-- Fans looking for race previews, trivia, and matchup data  
-- Coaches needing performance comparisons and taper modeling  
-- Broadcasters/creators wanting instant stat lookups during race weekends
+- **Fans**: Historical stats, trivia, and interactive previews  
+- **Coaches**: Segment deltas, taper optimization, and progression tracking  
+- **Broadcasters**: Stat summaries and real-time athlete comps  
+- **Brands & Organizers**: Automated race recaps and insights
 
 ## Join the Trilytx Beta
-- Want to join the leaderboard and shape the future of triathlon AI?
-- [Click here to sign up for the beta](https://docs.google.com/forms/d/e/1FAIpQLScAA8LmWCd0WUupNBp9QstbAtqkJNXwqkokTlJMb731xovzRA/viewform?usp=dialog)
+Want to shape the future of triathlon analytics?
 
-We're excited to have you on this journey with us. Together, we can revolutionize triathlon analytics!
+👉 [Join the Beta](https://docs.google.com/forms/d/e/1FAIpQLScAA8LmWCd0WUupNBp9QstbAtqkJNXwqkokTlJMb731xovzRA/viewform?usp=dialog)
+
+We're building this **with** the triathlon community — not just for it.  
+Thanks for being part of the journey. 🏊‍♂️🚴‍♀️🏃‍♂️
 """)
-
