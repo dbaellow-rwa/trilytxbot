@@ -2,6 +2,7 @@
 pandas==2.2.2
 streamlit==1.45.1
 streamlit-oauth==0.1.14
+streamlit_cookies_manager
 
 # Google Cloud
 google-cloud-bigquery==3.17.2
