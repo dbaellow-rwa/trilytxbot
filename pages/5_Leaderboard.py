@@ -3,7 +3,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL
-from utils.streamlit_utils import render_login_block, get_oauth
+from utils.streamlit_utils import render_login_block, get_oauth, make_athlete_link
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
@@ -132,9 +132,9 @@ for segment in ["swim_pto_score", "bike_pto_score", "run_pto_score", "overall_pt
         segment: "PTO Score",
          "Rank Movement": "Movement (vs Last Week)"
     })
-
+    display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
     emoji = segment_emojis.get(segment, "📊")
     label = segment.replace("_pto_score", "").capitalize()
 
     st.markdown(f"#### {emoji} {label}")
-    st.dataframe(display_df, hide_index=True, use_container_width=True)
+    st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
