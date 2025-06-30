@@ -45,6 +45,10 @@ def generate_sql_from_question_modular(question: str, openai_key: str) -> str:
     {chr(10).join([f"- {tbl}: {desc}" for tbl, desc in TABLE_SUMMARIES.items()])}
 
     Which table is most relevant to answer the question? Respond with 1 (ideally) or 2 (if required) table names (e.g., fct_race_results, fct_pto_scores_weekly).
+    guidelines:
+    - Only select tables that are directly relevant to the question.
+    - If multiple tables are needed, separate them with a comma.
+    - If the user is asking for specific times in a segment or segments or races, use fct_rae_results
     """
 
     selection_response = client.chat.completions.create(

@@ -23,8 +23,10 @@ from utils.security_utils import is_safe_sql
 from utils.about_the_chatbot import render_about
 
 oauth2, redirect_uri = get_oauth()
+st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
+st.title("🤖 Trilytx Chatbot")
+render_about()
 
-  
 
 # --- Function to handle the core query processing logic ---
 # This function is called by both initial and follow-up submission buttons
@@ -189,9 +191,7 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
 
 def main():
-    st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
-    st.title("🤖 Trilytx Chatbot")
-    render_about()
+
     if "user" not in st.session_state:
         st.warning("🔒 Please log in on the sidebar first.")
         st.stop()
@@ -249,7 +249,6 @@ def main():
                     st.session_state.follow_up_question_text = ""
                     st.rerun()
 
-        render_login_block(oauth2, redirect_uri)
     # ────────────────────────────────────────────────────────────────────────
     # Input Area: Dynamically show initial or follow-up question input
     # ────────────────────────────────────────────────────────────────────────
@@ -407,4 +406,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with st.sidebar:
+        render_login_block(oauth2, redirect_uri)
+
+    # Only run main app if user is logged in
+    if "user" in st.session_state:
+        main()
+    else:
+        st.warning("🔒 Please log in on the sidebar first.")

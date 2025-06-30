@@ -30,10 +30,11 @@ Important columns:
 - athlete_year_of_birth: Athlete’s birth year (e.g., 1990)
 - reporting_week: The reporting week this data corresponds to (e.g., 2024-04-14)
 - distance_group: Race type (e.g., "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "100 km", etc.)
-- swim_pto_score, bike_pto_score, run_pto_score, t1_pto_score, t2_pto_score, overall_pto_score: PTO segment scores. Higher is better.
-- athlete_finishing_place: Athlete's finishing place in the race.
-- overall_time: Athlete's overall finish time in HH:MM:SS format.
-- overall_seconds: Athlete's overall finish time in seconds.
+- swim_pto_score, bike_pto_score, run_pto_score, t1_pto_score, t2_pto_score, overall_pto_score: PTO segment scores calculated based on strength of field and reslts. Higher is better.
+  Result columns:
+  - athlete_finishing_place: The actual finishing position
+  - swim_time/t1_time/bike_time/t2_time/run_time/overall_time: The athlete's actual finish time in HH:MM:SS format
+  - swim_seconds/bike_seconds/run_seconds/t1_seconds/t2_seconds/overall_seconds: The actual finish time in seconds
 
 - race_distance: Full race distance label (e.g., "Half-Iron (70.3 miles)", "Iron (140.6 miles)", "Short course", "Other middle distances", "Other long distances", "100 km")
 - race_category: race category
@@ -47,7 +48,8 @@ Important columns:
 - organizer: Race organizer
 - race_location: city/country (e.g. Miami, FL, United States, Buenos Aires, Argentina )
 
-
+general guidelines:
+- When the user is asking for specific times in a segment or segments, use the _segment columns
 Head-to-Head Race Comparisons
 - Use the following as the starting point for head-to-head comparisons. Replace `athlete_a_slug` and `athlete_b_slug` with actual athlete slugs.
 ```sql
@@ -155,8 +157,8 @@ Prediction columns:
 
 Result columns:
 - athlete_finishing_place: The actual finishing position
-- swim_time/bike_time/run_time/overall_time: The athlete's actual finish time in HH:MM:SS format
-- swim_seconds/bike_seconds/run_seconds/overall_seconds: The actual finish time in seconds
+- swim_time/bike_time/run_time/overall_time: The athlete's actual time in HH:MM:SS format
+- swim_seconds/bike_seconds/run_seconds/overall_seconds: The actual time in seconds
 
 This table is used to compare how closely the athletes's race predictions matched the actual outcomes. You can calculate accuracy, identify over- or under-performing athletes, or summarize over/under performance by race, gender, or athlete.
 """
@@ -220,45 +222,47 @@ timeframe_where_clause: Use this to filter the reporting_week to a specific rang
 """        
 def FCT_RACE_SEGMENT_POSITIONS_PROMPT() -> str:
     return """Prompt for fct_race_segment_positions:
-trilytx_fct.fct_race_segment_positions
-Contains athlete-level rank and cumulative time tracking throughout each segment of a race. This table is used to analyze how athlete position changes after each leg and transition within a race.
-Use this table to analyze mid-race dynamics, such as who moved up or down in rankings during specific legs or transitions.
-Important columns:
+  `trilytx_fct.fct_race_segment_positions`
+  Contains athlete-level rank and cumulative time tracking throughout each segment of a race. Use this table to analyze mid-race dynamics, such as who moved up or down in rankings during specific legs or transitions.
 
-race_results_id: Unique identifier for each athlete's race result record.
-unique_race_id: Unique identifier for the race event.
-athlete_name: Athlete’s full name UPPERCASE (e.g., “LIONEL SANDERS”).
-athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., “lionel-sanders”).
-athlete_gender: Athlete gender (e.g., “men” or “women”).
-race_name: Lowercase-hyphenated race name (e.g., "san-francisco-t100-2025-women").
-cleaned_race_name: Cleaned version of the race name (e.g., "San Francisco T100 2025 Women").
-race_year: Year the race occurred.
-race_date: Date of the race (e.g., “2025-06-01”).
-race_tier: Tier classification of the race (e.g., “Gold Tier”).
-race_country: Country the athlete represents (e.g., “Canada”).
-race_distance: Race distance category (e.g., "Iron (140.6 miles)", "Half-Iron (70.3 miles)", "100 km", "Overall").
-race_location: City and country of the race (e.g., "San Francisco, CA, United States").
-Cumulative time tracking (in seconds):
+  Important columns:
+  - race_results_id: Unique identifier for each athlete's race result record.
+  - unique_race_id: Unique identifier for the race event.
+  - athlete_name: Athlete’s full name UPPERCASE (e.g., “LIONEL SANDERS”).
+  - athlete_slug: Lowercase, hyphenated version of the athlete's name (e.g., “lionel-sanders”).
+  - athlete_gender: Athlete gender (e.g., “men” or “women”).
+  - race_name: Lowercase-hyphenated race name (e.g., "san-francisco-t100-2025-women").
+  - cleaned_race_name: Cleaned version of the race name (e.g., "San Francisco T100 2025 Women").
+  - race_year: Year the race occurred.
+  - race_date: Date of the race (e.g., “2025-06-01”).
+  - race_tier: Tier classification of the race (e.g., “Gold Tier”).
+  - race_country: Country the athlete represents (e.g., “Canada”).
+  - race_distance: Race distance category (e.g., "Iron (140.6 miles)", "Half-Iron (70.3 miles)", "100 km", "Overall").
+  - race_location: City and country of the race (e.g., "San Francisco, CA, United States").
 
-cumulative_seconds_after_swim: Time after swim segment.
-t1_cumulative_seconds_after_t1: Time after T1 transition.
-bike_cumulative_seconds_after_bike: Time after bike segment.
-t2_cumulative_seconds_after_t2: Time after T2 transition.
-run_cumulative_seconds_after_run: Final time after the run.
-Rank tracking:
+  Cumulative time tracking (in seconds):
+  - cumulative_seconds_after_swim: Time after swim segment.
+  - cumulative_seconds_after_t1: Time after T1 transition.
+  - cumulative_seconds_after_bike: Time after bike segment.
+  - cumulative_seconds_after_t2: Time after T2 transition.
+  - cumulative_seconds_after_run: Final time after the run.
 
-rank_after_swim: Athlete’s rank immediately after swim.
-rank_after_t1: Rank after T1.
-rank_after_bike: Rank after bike.
-rank_after_t2: Rank after T2.
-rank_after_run: Final rank after run.
-Position change metrics (relative movement):
+  Rank tracking:
+  - rank_after_swim: Athlete’s rank immediately after swim.
+  - rank_after_t1: Rank after T1.
+  - rank_after_bike: Rank after bike.
+  - rank_after_t2: Rank after T2.
+  - rank_after_run: Final rank after run.
 
-position_change_in_t1: Rank change during T1 transition.
-position_change_on_bike: Rank change during the bike leg.
-position_change_in_t2: Rank change during T2 transition.
-position_change_on_run: Rank change during the run leg. 
-"""
+  Position change metrics (relative movement):
+  - position_change_in_t1: Rank change during T1 transition.
+  - position_change_on_bike: Rank change during the bike leg.
+  - position_change_in_t2: Rank change during T2 transition.
+  - position_change_on_run: Rank change during the run leg.
+
+ - swim_seconds/bike_seconds/run_seconds/overall_seconds: The actual time in seconds
+
+  """
 
 
 #──────────────────────────────────────────────────────────────────────────────
