@@ -110,6 +110,15 @@ def construct_race_report_prompt(specific_race_text, specific_race_positions_tex
     return f"""
 You are a professional sports performance analyst. Below are two tables from a triathlon that took place this weekend.
 
+### ❗Critical User Instructions:
+{instructions if instructions else "None"}
+
+**IMPORTANT:** If the "Critical User Instructions" above provide specific guidance on structure, style, or tone (e.g., "give me a few bullet points for my podcast", "write a social media caption", "just provide simplified notes"), you **MUST IGNORE** the default sections and formatting rules outlined below. In such cases, generate content *solely* in the style, structure, and tone requested by the user, even if it deviates significantly from a traditional race recap format.
+
+---
+
+**IF NO SPECIFIC INSTRUCTIONS ARE PROVIDED ABOVE (i.e., "None" is present in Critical User Instructions), THEN FOLLOW THIS DEFAULT STRUCTURE:**
+
 Using the athlete data and historical performance trends, generate a clear, structured race recap that includes the following sections:
 
 ---
@@ -127,38 +136,38 @@ For the top 3 finishers:
     - **Overall rank** (overall_actual_rank)
     - **Overall predicted performance delta** (overall_delta)
 - Highlight key segments (swim, bike, run) with:
-  - **segment time(s)**(swim_time and/or bike_time and/or run_time)
-  - **segment actual rank** how they performed in the segment (swim_actual_rank and/or bike_actual_rank and/or run_actual_rank)
-  - **segment predicted performance delta** positive number means they overperformed their predicted performance (swim_delta and/or bike_delta and/or run_delta)
-  - **segment positions gained** positive number means they made up ground in the race during the segment (position_change_on_bike and/or position_change_on_run)
+    - **segment time(s)**(swim_time and/or bike_time and/or run_time)
+    - **segment actual rank** how they performed in the segment (swim_actual_rank and/or bike_actual_rank and/or run_actual_rank)
+    - **segment predicted performance delta** positive number means they overperformed their predicted performance (swim_delta and/or bike_delta and/or run_delta)
+    - **segment positions gained** positive number means they made up ground in the race during the segment (position_change_on_bike and/or position_change_on_run)
 
 ---
 
 ### 📈 Overperformers
 - Identify athletes with a **positive overall predicted performance delta**.
 - For each:
-  - Write a 2-3 sentance summary of their race, focusing on where they gained positions.
-  - Include:
-    - **Finish time** (overall_time)
-    - **Overall rank** (overall_actual_rank)
-    - **Overall predicted performance delta** (overall_delta)
-    - **Top segment with the most position change** athlete's highest value in the position_change_on_bike or position_change_on_run columns (must be positive to include)
-    - Notable segments with `time`, `actual rank`, `predicted performance delta`, 
-    - typically one of the athletes with the lowest values in race_overall_delta_rank_desc should be included
+    - Write a 2-3 sentance summary of their race, focusing on where they gained positions.
+    - Include:
+        - **Finish time** (overall_time)
+        - **Overall rank** (overall_actual_rank)
+        - **Overall predicted performance delta** (overall_delta)
+        - **Top segment with the most position change** athlete's highest value in the position_change_on_bike or position_change_on_run columns (must be positive to include)
+        - Notable segments with `time`, `actual rank`, `predicted performance delta`, 
+        - typically one of the athletes with the lowest values in race_overall_delta_rank_desc should be included
 
 ---
 
 ### 📉 Underperformers
 - Identify athletes with a **negative overall predicted performance delta**.
 - For each:
-  - Write a 2-3 sentance summary describing where they lost ground.
-  - Include:
-    - **Finish time** (overall_time)
-    - **Overall rank** (overall_actual_rank)
-    - **Overall predicted performance delta** (overall_delta)
-    - **Worst segment with the most position change** athlete's lowest value in the position_change_on_bike or position_change_on_run columns (must be negative to include)
-    - Struggling segments with `time`, `actual rank`, and `predicted performance delta`
-    - typically one of the athletes with the lowest values in race_overall_delta_rank_asc should be included
+    - Write a 2-3 sentance summary describing where they lost ground.
+    - Include:
+        - **Finish time** (overall_time)
+        - **Overall rank** (overall_actual_rank)
+        - **Overall predicted performance delta** (overall_delta)
+        - **Worst segment with the most position change** athlete's lowest value in the position_change_on_bike or position_change_on_run columns (must be negative to include)
+        - Struggling segments with `time`, `actual rank`, and `predicted performance delta`
+        - typically one of the athletes with the lowest values in race_overall_delta_rank_asc should be included
 
 ---
 
@@ -174,10 +183,9 @@ For the top 3 finishers:
 - Mention any standout storylines (e.g., unexpected podium, breakthrough performance, rough day for a favorite).
 - Use a professional yet conversational tone to leave the reader with a sense of closure.
 
-
 ---
 
-### ❗Instructions:
+### General Instructions for Tone and Voice (apply to all outputs unless specifically contradicted by Critical User Instructions):
 - Use a **natural, conversational tone** — your writing should feel like a race analyst talking to an engaged triathlon audience.
 - Start each section or athlete summary with a **short narrative paragraph** that gives context before listing the numbers.
 - Use **more full sentences and flowing paragraphs** instead of relying only on bullet points.
@@ -187,14 +195,11 @@ For the top 3 finishers:
 - Avoid placeholders like ATHLETE A or [Athlete Name].
 - You may still use bullet points, but aim for a balance between narrative and structure.
 - Always consider the historical context when summarizing athlete performances.
-  - If an athlete recently won a major race, mention it.
-  - If they have multiple podiums or a big improvement over past results, point it out.
-  - Use specific past race names and dates to make the analysis feel grounded.
+    - If an athlete recently won a major race, mention it.
+    - If they have multiple podiums or a big improvement over past results, point it out.
+    - Use specific past race names and dates to make the analysis feel grounded.
 
-### Additional Instructions from the User:
-{instructions if instructions else "None"}
-
-### Points you have halucinated in the past:
+### Points you have hallucinated in the past:
 - overall_pto_rank refers to the athlete's incoming overall rank **relative to the other participants in the field**
 ---
 

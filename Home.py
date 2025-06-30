@@ -107,22 +107,4 @@ def show_beta_overview():
 with st.sidebar:
     render_login_block(oauth2, redirect_uri)
 
-if "user" in st.session_state:
-    user_info = st.session_state["user"]
-    st.success(f"Welcome back, {user_info.get('name', 'triathlete')} 👋")
-
-    # st.markdown("""
-    # ---
-    # ### 📚 Where to Go Next
-
-    # - 🧠 **Chatbot** — Ask questions about race results, athlete stats, and predictions  
-    # - 📌 **Trilytx Executive Summary** — Overview of features, roadmap, and vision
-    # - 📘 **Trilytx Whitepaper** - Accelerating Triathlon Intelligence Through Human-AI Collaboration
-    # - ℹ️ **About The Chatbot** — Learn what powers this project
-
-    # ---
-    # """)
-
-
-
 show_beta_overview()

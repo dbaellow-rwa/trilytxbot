@@ -3,15 +3,33 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_ATHLETE_SEARCH_LOG
-from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search
+from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search, cookies
 from utils.generate_athlete_summary import generate_athlete_summary_for_athlete
+import os
+import json
 oauth2, redirect_uri = get_oauth()
+
+
+if "user" not in st.session_state and "user" in cookies:
+    try:
+        st.session_state["user"] = json.loads(cookies["user"])
+    except Exception:
+        st.warning("❌ Failed to decode user info.")
+
 
 # Load credentials and BigQuery client
 credentials, project_id, _ = load_credentials(USE_LOCAL)
 bq_client = bigquery.Client(credentials=credentials, project=project_id)
 
 st.set_page_config(page_title="🏃 Athlete Profile Viewer", layout="wide")
+# Support loading directly from ?athlete_name= query
+query_params = st.query_params
+if "athlete_name" in query_params:
+    # It's a list of strings; we want the first entry
+    st.session_state.selected_athlete = query_params["athlete_name"]
+
+
+
 st.title("🏃 Athlete Profile Viewer")
 
 # Initialize session state
@@ -116,7 +134,6 @@ with st.sidebar:
             if st.button(button_text, key=f"example_{hash(athlete_name)}"):
                 st.session_state.selected_athlete = athlete_name
                 st.rerun()
-
     render_login_block(oauth2, redirect_uri)
 
 # Log the search if an athlete was selected
@@ -147,14 +164,17 @@ if "selected_athlete" in st.session_state:
         st.markdown(f"**Swim Rank:** {athlete_swim_rank} |  **Bike Rank:** {athlete_bike_rank}  |  **Run Rank:** {athlete_run_rank}")
         # Summary
         st.markdown("### 🧠 LLM Generated Athlete Summary")
-        if "user" in st.session_state:
+
+        if st.session_state.get("user") is not None:
             instructions = st.text_area("Optional LLM prompt instructions:")
+            
             if st.button("🧠 Generate Athlete Recap"):
-                with st.spinner("Generating summary - This might take 10-15 seconds..."):
+                with st.spinner("Generating summary - This might take 10–15 seconds..."):
                     summary = generate_athlete_summary_for_athlete(athlete_name, instructions)
                     st.markdown(summary)
         else:
-            st.warning("🔒 Please log in to generate summaries.")
+            st.warning("🔒 Please log in on the home page to generate summaries.")
+
 
         st.markdown("### 📈 Race History")
         display_df = race_results_df.rename(columns={

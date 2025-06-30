@@ -192,8 +192,8 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
 def main():
 
-    if "user" not in st.session_state:
-        st.warning("🔒 Please log in on the sidebar first.")
+    if "user" not in st.session_state or st.session_state.user is None:
+        st.warning("🔒 Please log in on the home page first.")
         st.stop()
 
     st.markdown("Ask a question about triathlon race data.")
@@ -406,11 +406,4 @@ def main():
 
 
 if __name__ == "__main__":
-    with st.sidebar:
-        render_login_block(oauth2, redirect_uri)
-
-    # Only run main app if user is logged in
-    if "user" in st.session_state:
-        main()
-    else:
-        st.warning("🔒 Please log in on the sidebar first.")
+    main()

@@ -4,7 +4,7 @@ from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_RACE_SEARCH_LOG, BQ_RACE_RECAP_LOG
 from utils.generate_race_recaps import generate_race_recap_for_id
-from utils.streamlit_utils import log_race_search, log_race_recap_generate, render_login_block,get_oauth
+from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth
 
 oauth2, redirect_uri = get_oauth()
 
@@ -170,7 +170,19 @@ if st.session_state.get("load_results_clicked", False):
             "run_time": "Run",
             "overall_time": "Finish Time"
         })
-        st.dataframe(display_df, hide_index=True)
+        # If 'Place' column exists, convert to string int format
+        if "Place" in display_df.columns:
+            display_df["Place"] = display_df["Place"].apply(lambda x: str(int(x)) if pd.notna(x) else "")
+
+        # Apply string conversion and NA handling to other columns
+        for col in display_df.columns:
+            if col != "Place":
+                display_df[col] = display_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
+
+
+        # Show it
+        display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+        st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
 
             # Optional segment rank table
     segment_df = get_race_segment_positions(st.session_state.selected_race_id)
@@ -182,14 +194,17 @@ if st.session_state.get("load_results_clicked", False):
             "rank_after_bike": "Rank After Bike",
             "rank_after_run": "Rank After Run"
         })
-        st.dataframe(display_df, hide_index=True)
+        # Convert all non-string columns to string, safely handling NA values
+        display_df = display_df.applymap(lambda x: "" if pd.isna(x) else str(x))
+
+        display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+        st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
     else:
         st.info("No segment ranking data available for this race.")
     st.markdown("### 📋 LLM Generated Race Recap")
-    if "user" in st.session_state:
 
-    # Button to generate the recap
-    # Store user instructions in session state
+    if "user" in st.session_state:
+        # Initialize session state for instructions if not present
         if "recap_instructions" not in st.session_state:
             st.session_state["recap_instructions"] = ""
 
@@ -198,20 +213,29 @@ if st.session_state.get("load_results_clicked", False):
             "Customize how the recap is written (e.g., focus on the bike segment, write it like a pirate):",
             placeholder="Write it in the style of a sports announcer... 🏁",
             key="recap_instructions_input"
-)
+        )
 
         if st.button("🧠 Generate Race Recap"):
-            log_race_recap_generate(bq_client, st.session_state.selected_race_id, BQ_RACE_RECAP_LOG)
+            log_race_recap_generate(
+                bq_client, 
+                st.session_state.selected_race_id, 
+                BQ_RACE_RECAP_LOG
+            )
             with st.spinner("Generating recap - This might take 10-15 seconds..."):
-                instructions = st.session_state.get("recap_instructions", "")
-                recap_text = generate_race_recap_for_id(st.session_state.selected_race_id, st.session_state.recap_instructions)
+                instructions = st.session_state["recap_instructions"]
+                recap_text = generate_race_recap_for_id(
+                    st.session_state.selected_race_id, 
+                    instructions
+                )
                 st.session_state["race_recap_text"] = recap_text
 
-        # Show the recap if generated
         if st.session_state.get("race_recap_text"):
+            st.markdown("#### 📄 Recap Output")
             st.markdown(st.session_state["race_recap_text"])
+
     else:
-        st.warning("🔒 Please log in on the sidebar to generate the race recaps.")
+        st.warning("🔒 Please log in on the home page to generate the race recaps.")
+
     st.stop()
 
 
