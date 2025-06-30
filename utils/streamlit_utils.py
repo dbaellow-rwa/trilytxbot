@@ -164,11 +164,17 @@ def render_login_block(oauth2, redirect_uri):
     else:
         # st.markdown("### 🔐 Sign in to Trilytx")
         # st.markdown("Login to access the chatbot and vote on answers.")
+        st.markdown("""
+        <div style="background-color:#e0f0ff;padding:10px;border-radius:10px;text-align:center;">
+            👆 <strong style="color:black;">Please log in with Google to access full features.</strong>
+        </div>
+        """, unsafe_allow_html=True)
         token = oauth2.authorize_button(
-            name="🟢 Login with Google",
+            name="🟢 Login with Google to access full features",
             redirect_uri=redirect_uri,
             scope="openid email profile"
         )
+
 
         if token:
             raw_token = token.get("token")
@@ -191,6 +197,8 @@ def render_login_block(oauth2, redirect_uri):
                 👆 <strong style="color:black;">Please log in with Google to access full features.</strong>
             </div>
             """, unsafe_allow_html=True)
+
+
 # config.py or streamlit_utils.py
 def get_oauth():
     oauth2 = OAuth2Component(
