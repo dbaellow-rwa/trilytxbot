@@ -3,7 +3,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL
-from utils.streamlit_utils import render_login_block, get_oauth, make_athlete_link
+from utils.streamlit_utils import get_flag, render_login_block, get_oauth, make_athlete_link
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
@@ -125,14 +125,24 @@ for segment in ["swim_pto_score", "bike_pto_score", "run_pto_score", "overall_pt
 
     # Rename for display
     display_df = top_df[[
-        "Rank", "athlete_name", "athlete_country", segment, "Rank Movement"
+        "Rank", "athlete_slug", "athlete_name", "athlete_country", segment, "Rank Movement"
     ]].rename(columns={
         "athlete_name": "Athlete",
         "athlete_country": "Country",
         segment: "PTO Score",
          "Rank Movement": "Movement (vs Last Week)"
     })
-    display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+            # Add hyperlinks (make sure 'athlete_slug' is still present)
+    if "athlete_slug" in display_df.columns:
+        display_df["athlete_slug"] = display_df["athlete_slug"]
+        display_df["Athlete"] = display_df.apply(
+            lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+            axis=1
+        )
+        display_df.drop(columns=["athlete_slug"], inplace=True)
+            # Add country flags safely
+    if "Country" in display_df.columns:
+        display_df["Country"] = display_df["Country"].apply(get_flag)
     emoji = segment_emojis.get(segment, "📊")
     label = segment.replace("_pto_score", "").capitalize()
 

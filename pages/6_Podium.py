@@ -3,7 +3,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL
-from utils.streamlit_utils import render_login_block, get_oauth, make_athlete_link
+from utils.streamlit_utils import render_login_block, get_oauth, make_athlete_link, get_flag
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
@@ -117,7 +117,7 @@ for segment_col, (label, time_col) in segment_map.items():
 
 
     display_df = top_df[[
-        "Rank", "athlete_name", "athlete_country", "race_date", time_col, "organizer", "cleaned_race_name"
+        "Rank", "athlete_slug", "athlete_name", "athlete_country", "race_date", time_col, "organizer", "cleaned_race_name"
     ]].rename(columns={
         "athlete_name": "Athlete",
         "athlete_country": "Country",
@@ -126,8 +126,15 @@ for segment_col, (label, time_col) in segment_map.items():
         "organizer": "Organizer",
         "cleaned_race_name": "Race"
     })
-    display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
-
+    if "athlete_slug" in display_df.columns:
+        display_df["athlete_slug"] = display_df["athlete_slug"]
+        display_df["Athlete"] = display_df.apply(
+            lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+            axis=1
+        )
+        display_df.drop(columns=["athlete_slug"], inplace=True)
+    if "Country" in display_df.columns:
+        display_df["Country"] = display_df["Country"].apply(get_flag)
 
     st.markdown(f"### {label} Podium")
     st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)

@@ -3,7 +3,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_ATHLETE_SEARCH_LOG
-from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search, cookies
+from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search, cookies, make_race_link
 from utils.generate_athlete_summary import generate_athlete_summary_for_athlete
 import os
 import json
@@ -62,7 +62,7 @@ def get_athlete_race_results(client, athlete_slug: str) -> pd.DataFrame:
     query = """
     SELECT
         athlete_name, athlete_slug, athlete_country, athlete_gender, race_date, organizer,
-        cleaned_race_name, race_location, race_distance, race_tier, sof,
+        cleaned_race_name, unique_race_id, race_location, race_distance, race_tier, sof,
         athlete_finishing_place, swim_time, bike_time, run_time, overall_time
     FROM `trilytx.trilytx_fct.fct_race_results`
     WHERE athlete_slug = @slug
@@ -177,6 +177,7 @@ with st.sidebar:
         for key in ["selected_athlete", "selected_athlete_slug", "athlete_results_df"]:
             if key in st.session_state:
                 del st.session_state[key]
+        st.query_params.clear()  # 👈 Clear the URL query string    
         st.rerun()
 
 if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.session_state:
@@ -201,7 +202,7 @@ if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.sess
 
 
 
-        st.header(f"👤 Profile: {athlete_name.title()}")
+        st.header(f"{athlete_name.title()}")
         st.markdown(f"**Country:** {athlete_country}  |  **Gender:** {athlete_gender}")
         st.markdown(f"**Overall PTO Rank:** {athlete_overall_rank}  |  **National PTO Rank:** {athlete_national_rank}")
         st.markdown(f"**Swim Rank:** {athlete_swim_rank} |  **Bike Rank:** {athlete_bike_rank}  |  **Run Rank:** {athlete_run_rank}")
@@ -235,8 +236,21 @@ if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.sess
             "run_time": "Run",
             "overall_time": "Finish Time"
         })
-        st.dataframe(display_df.drop(columns=["athlete_name", "athlete_country", "athlete_gender"]), hide_index=True)
+        display_df["Race"] = display_df.apply(
+            lambda row: make_race_link(row["Race"], row["unique_race_id"]),
+            axis=1
+        )
+        display_df.drop(columns=["athlete_slug", "unique_race_id", "athlete_name", "athlete_country", "athlete_gender"], inplace=True)
+        # Add medal emojis for top 3 places
+        if "Place" in display_df.columns:
+            display_df["Place"] = display_df["Place"].apply(lambda x: str(int(x)) if pd.notna(x) and str(x).isdigit() else x)
+            display_df["Place"] = display_df["Place"].replace({
+                "1": "🥇 1",
+                "2": "🥈 2",
+                "3": "🥉 3"
+            })
 
+        st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
         if trend_df.empty:
             st.warning("No PTO score trend data found.")
         else:

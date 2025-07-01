@@ -4,17 +4,43 @@ from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_RACE_SEARCH_LOG, BQ_RACE_RECAP_LOG
 from utils.generate_race_recaps import generate_race_recap_for_id
-from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth, get_flag
-
+from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth, get_flag, cookies
+import json
 oauth2, redirect_uri = get_oauth()
 
 
 # Load credentials and BigQuery client
 credentials, project_id, _ = load_credentials(USE_LOCAL)
 bq_client = bigquery.Client(credentials=credentials, project=project_id)
+# Handle incoming ?unique_race_id=... query param
+query_params = st.query_params
+if "unique_race_id" in query_params:
+    st.session_state.selected_race_id = query_params["unique_race_id"]
+
+    # Optional: lookup label for display
+    @st.cache_data(ttl=3600)
+    def get_race_label_map():
+        query = """
+        SELECT DISTINCT unique_race_id,
+            CONCAT(initcap(organizer), ' ', cleaned_race_name, ' ', initcap(race_gender), ' (', CAST(race_date AS STRING), ')') AS label
+        FROM `trilytx.trilytx_fct.fct_race_results`
+        """
+        df = bq_client.query(query).to_dataframe()
+        return {row["unique_race_id"]: row["label"] for _, row in df.iterrows()}
+
+    race_label_map = get_race_label_map()
+    st.session_state.selected_race_label = race_label_map.get(st.session_state.selected_race_id, "Selected Race")
+    st.session_state.load_results_clicked = True
+
 
 st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
 st.title("🏁 Race Results Viewer")
+
+if "user" not in st.session_state and "user" in cookies:
+    try:
+        st.session_state["user"] = json.loads(cookies["user"])
+    except Exception:
+        st.warning("❌ Failed to decode user info.")
 
 # Initialize session state
 for key in ["selected_race_id", "filters_applied", "races_df"]:
@@ -122,7 +148,7 @@ else:
 def get_race_results(race_id):
     query = """
     SELECT
-        athlete_slug, athlete_finishing_place, athlete_name, athlete_country,
+        race_category, race_distance, organizer, cleaned_race_name, race_date, race_tier, sof, race_location, athlete_slug, athlete_finishing_place, athlete_name, athlete_country,
         swim_time, t1_time, bike_time, t2_time, run_time, overall_time, overall_seconds
     FROM `trilytx.trilytx_fct.fct_race_results`
     WHERE unique_race_id = @race_id
@@ -160,7 +186,22 @@ if st.session_state.get("load_results_clicked", False):
     if results_df.empty:
         st.warning("No results found for this race.")
     else:
-        st.markdown(f"**{len(results_df)} athletes** found.")
+
+        race_category = results_df["race_category"].iloc[0]
+        organizer = results_df["organizer"].iloc[0]
+        race_distance = results_df["race_distance"].iloc[0]
+        race_date = results_df["race_date"].iloc[0]
+        race_tier = results_df["race_tier"].iloc[0]
+        sof = results_df["sof"].iloc[0]
+        race_location = results_df["race_location"].iloc[0]
+
+
+
+
+        st.markdown(f"**Distance:** {race_distance}  |  **Location:** {race_location}")
+        st.markdown(f"**Tier:** {race_tier}  |  **SOF:** {sof}")
+        
+        # st.markdown(f"**{len(results_df)} athletes** found.")
         # Define renamed display columns
         # Define the raw columns and matching display column names
         columns_to_check = ["swim_time", "bike_time", "run_time", "overall_time"]
@@ -192,8 +233,11 @@ if st.session_state.get("load_results_clicked", False):
                     results_df.at[i, raw_col] = f"{medal} {results_df.at[i, raw_col]}"
 
 
-        # Now build the display_df for rendering
-        display_df = results_df.drop(columns=["overall_seconds"]).rename(columns=column_renames)
+        # Drop only 'overall_seconds', keep athlete_slug
+        display_df = results_df.drop(columns=["overall_seconds"])
+
+        # Rename display columns
+        display_df = display_df.rename(columns=column_renames)
 
         # Format Place as clean integers
         if "Place" in display_df.columns:
@@ -204,16 +248,31 @@ if st.session_state.get("load_results_clicked", False):
             if col != "Place":
                 display_df[col] = display_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
 
-        # Add hyperlinks to athlete names
-        display_df["Athlete"] = display_df.apply(
-            lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
-            axis=1
-        )
-        display_df = results_df.drop(columns=["athlete_slug"])
-        display_df["Country"] = display_df["Country"].apply(get_flag)
-        # Render with markdown (supports links, emojis, but not CSS)
+        # Add hyperlinks (make sure 'athlete_slug' is still present)
+        if "athlete_slug" in results_df.columns:
+            display_df["athlete_slug"] = results_df["athlete_slug"]
+            display_df["Athlete"] = display_df.apply(
+                lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+                axis=1
+            )
+            display_df.drop(columns=["athlete_slug",
+                                     "race_category",
+                                     "organizer",
+                                     "cleaned_race_name",
+                                     "race_date",
+                                     "race_tier",
+                                     "sof",
+                                     "race_location",
+                                     "race_distance"]
+                                     , inplace=True)
 
+        # Add country flags safely
+        if "Country" in display_df.columns:
+            display_df["Country"] = display_df["Country"].apply(get_flag)
+
+        # Render markdown
         st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
+
 
 
             # Optional segment rank table
@@ -239,7 +298,11 @@ if st.session_state.get("load_results_clicked", False):
             if col not in numeric_columns:
                 display_df[col] = display_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
 
-        display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+        display_df["Athlete"] = display_df.apply(
+            lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+            axis=1
+        )
+        display_df = display_df.drop(columns=["athlete_slug"])
         display_df["Country"] = display_df["Country"].apply(get_flag)
         st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
     else:

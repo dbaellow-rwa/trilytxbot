@@ -293,6 +293,10 @@ def make_athlete_link(name: str, slug: str) -> str:
     encoded_slug = urllib.parse.quote(slug)
     return f'<a href="/Athlete_Profile?athlete_slug={encoded_slug}" target="_self">{name}</a>'
 
+def make_race_link(name: str, race_id: str) -> str:
+    import urllib.parse
+    encoded_id = urllib.parse.quote(race_id)
+    return f'<a href="/Race_Results?unique_race_id={encoded_id}" target="_self">{name}</a>'
 
 import pycountry
 
