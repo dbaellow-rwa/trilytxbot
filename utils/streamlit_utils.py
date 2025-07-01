@@ -292,3 +292,17 @@ def make_athlete_link(name: str) -> str:
     import urllib.parse
     encoded_name = urllib.parse.quote(name)
     return f'<a href="/Athlete_Profile?athlete_name={encoded_name}" target="_self">{name}</a>'
+
+
+import pycountry
+
+def get_flag(country_value):
+    try:
+        country = pycountry.countries.lookup(country_value)
+        code = country.alpha_2.lower()
+
+        # Build emoji flag from country code
+        return f"<img src='https://flagicons.lipis.dev/flags/4x3/{code}.svg' height='16' style='vertical-align:middle; margin-right:4px;'> {country_value}"
+    except:
+        pass
+    return country_value  # fallback

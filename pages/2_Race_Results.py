@@ -4,7 +4,7 @@ from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_RACE_SEARCH_LOG, BQ_RACE_RECAP_LOG
 from utils.generate_race_recaps import generate_race_recap_for_id
-from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth
+from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth, get_flag
 
 oauth2, redirect_uri = get_oauth()
 
@@ -138,6 +138,7 @@ def get_race_segment_positions(race_id):
     query = """
     SELECT
         athlete_name,
+        athlete_country,
         rank_after_swim,
         rank_after_bike,
         rank_after_run
@@ -159,7 +160,10 @@ if st.session_state.get("load_results_clicked", False):
         st.warning("No results found for this race.")
     else:
         st.markdown(f"**{len(results_df)} athletes** found.")
-        display_df = results_df.drop(columns=["overall_seconds"]).rename(columns={
+        # Define renamed display columns
+        # Define the raw columns and matching display column names
+        columns_to_check = ["swim_time", "bike_time", "run_time", "overall_time"]
+        column_renames = {
             "athlete_finishing_place": "Place",
             "athlete_name": "Athlete",
             "athlete_country": "Country",
@@ -169,20 +173,43 @@ if st.session_state.get("load_results_clicked", False):
             "t2_time": "T2",
             "run_time": "Run",
             "overall_time": "Finish Time"
-        })
-        # If 'Place' column exists, convert to string int format
+        }
+
+        # Copy for time-safe parsing
+        highlight_df = results_df.copy()
+
+        # Convert time columns to timedelta if needed
+        for col in columns_to_check:
+            if col in highlight_df.columns:
+                highlight_df[col] = pd.to_timedelta(highlight_df[col], errors="coerce")
+
+        # Add medal emojis to top 3 before converting anything to string
+        for raw_col, medal_col in zip(columns_to_check, ["Swim", "Bike", "Run", "Finish Time"]):
+            if raw_col in highlight_df.columns:
+                top3_indices = highlight_df[raw_col].nsmallest(3).index
+                for i, medal in zip(top3_indices, ["🥇", "🥈", "🥉"]):
+                    results_df.at[i, raw_col] = f"{medal} {results_df.at[i, raw_col]}"
+
+
+        # Now build the display_df for rendering
+        display_df = results_df.drop(columns=["overall_seconds"]).rename(columns=column_renames)
+
+        # Format Place as clean integers
         if "Place" in display_df.columns:
             display_df["Place"] = display_df["Place"].apply(lambda x: str(int(x)) if pd.notna(x) else "")
 
-        # Apply string conversion and NA handling to other columns
+        # Convert all other columns to safe strings
         for col in display_df.columns:
             if col != "Place":
                 display_df[col] = display_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
 
-
-        # Show it
+        # Add hyperlinks to athlete names
         display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+        display_df["Country"] = display_df["Country"].apply(get_flag)
+        # Render with markdown (supports links, emojis, but not CSS)
+
         st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
+
 
             # Optional segment rank table
     segment_df = get_race_segment_positions(st.session_state.selected_race_id)
@@ -190,14 +217,25 @@ if st.session_state.get("load_results_clicked", False):
         st.markdown("### 🏊🚴🏃 Segment Rankings")
         display_df = segment_df.rename(columns={
             "athlete_name": "Athlete",
+            "athlete_country": "Country",
             "rank_after_swim": "Rank After Swim",
             "rank_after_bike": "Rank After Bike",
             "rank_after_run": "Rank After Run"
         })
-        # Convert all non-string columns to string, safely handling NA values
-        display_df = display_df.applymap(lambda x: "" if pd.isna(x) else str(x))
+        # Format Place as clean integers
+        numeric_columns = ["Rank After Swim", "Rank After Bike", "Rank After Run"]
+
+        for col in display_df.columns:
+            if col in numeric_columns:
+                display_df[col] = display_df[col].apply(lambda x: str(int(x)) if pd.notna(x) else "")
+
+        # Convert all other columns to safe strings
+        for col in display_df.columns:
+            if col not in numeric_columns:
+                display_df[col] = display_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
 
         display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+        display_df["Country"] = display_df["Country"].apply(get_flag)
         st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
     else:
         st.info("No segment ranking data available for this race.")
