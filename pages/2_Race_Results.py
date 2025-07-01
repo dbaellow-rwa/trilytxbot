@@ -8,6 +8,8 @@ from utils.streamlit_utils import log_race_search, log_race_recap_generate, make
 import json
 oauth2, redirect_uri = get_oauth()
 
+st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
+st.title("🏁 Race Results Viewer")
 
 # Load credentials and BigQuery client
 credentials, project_id, _ = load_credentials(USE_LOCAL)
@@ -33,8 +35,7 @@ if "unique_race_id" in query_params:
     st.session_state.load_results_clicked = True
 
 
-st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
-st.title("🏁 Race Results Viewer")
+
 
 if "user" not in st.session_state and "user" in cookies:
     try:

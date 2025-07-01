@@ -171,14 +171,14 @@ with st.sidebar:
                     st.session_state.selected_athlete = entry[0]  # original name
                     st.session_state.selected_athlete_slug = entry[1]  # slug
                     st.rerun()
-
-    render_login_block(oauth2, redirect_uri)
     if st.button("🔁 Reset Search"):
         for key in ["selected_athlete", "selected_athlete_slug", "athlete_results_df"]:
             if key in st.session_state:
                 del st.session_state[key]
         st.query_params.clear()  # 👈 Clear the URL query string    
         st.rerun()
+    render_login_block(oauth2, redirect_uri)
+
 
 if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.session_state:
     athlete_name = st.session_state.selected_athlete
