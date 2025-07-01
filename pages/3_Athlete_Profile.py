@@ -23,10 +23,30 @@ bq_client = bigquery.Client(credentials=credentials, project=project_id)
 
 st.set_page_config(page_title="🏃 Athlete Profile Viewer", layout="wide")
 # Support loading directly from ?athlete_name= query
+# Sidebar: athlete search
+from difflib import get_close_matches
+
+@st.cache_data(ttl=3600)
+def get_athlete_name_slug_map():
+    query = """
+        SELECT DISTINCT athlete_name, athlete_slug
+        FROM `trilytx.trilytx_fct.fct_race_results`
+        WHERE athlete_slug IS NOT NULL
+        ORDER BY athlete_name
+    """
+    df = bq_client.query(query).to_dataframe()
+    name_slug_map = {row["athlete_name"].lower(): (row["athlete_name"], row["athlete_slug"]) for _, row in df.iterrows()}
+    return name_slug_map
+
 query_params = st.query_params
-if "athlete_name" in query_params:
-    # It's a list of strings; we want the first entry
-    st.session_state.selected_athlete = query_params["athlete_name"]
+if "athlete_slug" in query_params:
+    st.session_state.selected_athlete_slug = query_params["athlete_slug"]
+    # Reverse lookup for display name
+    name_slug_map = get_athlete_name_slug_map()
+    for name_lc, (display, slug) in name_slug_map.items():
+        if slug == st.session_state.selected_athlete_slug:
+            st.session_state.selected_athlete = display
+            break
 
 
 
@@ -38,27 +58,27 @@ if "athlete_results_df" not in st.session_state:
 
 
 
-def get_athlete_race_results(client, athlete_name: str) -> pd.DataFrame:
+def get_athlete_race_results(client, athlete_slug: str) -> pd.DataFrame:
     query = """
     SELECT
-        athlete_name, athlete_country, athlete_gender, race_date, organizer,
+        athlete_name, athlete_slug, athlete_country, athlete_gender, race_date, organizer,
         cleaned_race_name, race_location, race_distance, race_tier, sof,
         athlete_finishing_place, swim_time, bike_time, run_time, overall_time
     FROM `trilytx.trilytx_fct.fct_race_results`
-    WHERE LOWER(athlete_name) = LOWER(@athlete)
+    WHERE athlete_slug = @slug
     ORDER BY race_date DESC
     """
     job_config = bigquery.QueryJobConfig(
-        query_parameters=[bigquery.ScalarQueryParameter("athlete", "STRING", athlete_name)]
+        query_parameters=[bigquery.ScalarQueryParameter("slug", "STRING", athlete_slug)]
     )
     return client.query(query, job_config=job_config).to_dataframe()
 
 
-def get_athlete_pto_score_trend(bq_client, athlete_name: str) -> pd.DataFrame:
+def get_athlete_pto_score_trend(bq_client, athlete_slug: str) -> pd.DataFrame:
     query = """
     WITH scores AS (
   SELECT * FROM `trilytx.trilytx_fct.fct_pto_scores_weekly`
-  WHERE LOWER(athlete_name) = LOWER(@athlete_name)
+  WHERE athlete_slug = @athlete_slug
     AND distance_group = 'Overall'
     and reporting_week <= CURRENT_DATE()
 ),
@@ -98,7 +118,7 @@ ORDER BY reporting_week DESC
 """
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("athlete_name", "STRING", athlete_name)
+            bigquery.ScalarQueryParameter("athlete_slug", "STRING", athlete_slug)
         ]
     )
     df = bq_client.query(query, job_config=job_config).to_dataframe()
@@ -106,22 +126,36 @@ ORDER BY reporting_week DESC
 
 
 
+
 # Sidebar: athlete search
 with st.sidebar:
     st.markdown("### 🔍 Find an Athlete")
 
-    athlete_query = st.text_input("Enter athlete name:", "")
+    name_slug_map = get_athlete_name_slug_map()
+    athlete_names_lower = list(name_slug_map.keys())
 
-    if st.button("🔍 Search Athlete"):
-        if athlete_query:
-            st.session_state.selected_athlete = athlete_query.strip()
+    search_input = st.text_input("Enter athlete name:", "")
+
+    if search_input:
+        search_input_lc = search_input.lower()
+        close_matches_lc = get_close_matches(search_input_lc, athlete_names_lower, n=10, cutoff=0.5)
+
+        if close_matches_lc:
+            # recover original casing from the mapping
+            display_names = [name_slug_map[name][0] for name in close_matches_lc]
+            selected_name_display = st.selectbox("Select a matching athlete", display_names)
+
+            if st.button("🔍 Search Athlete"):
+                # recover the slug from the display name (reverse lookup)
+                for name_lc, (display, slug) in name_slug_map.items():
+                    if display == selected_name_display:
+                        st.session_state.selected_athlete = display
+                        st.session_state.selected_athlete_slug = slug
+                        break
         else:
-            st.warning("Please enter an athlete name.")
-
-    with st.expander("💡 Try an Example Athlete"):
-        st.subheader("Popular Athletes")
-        st.markdown("Click a name to autofill the search box.")
-
+            st.warning("No close matches found. Try refining your input.")
+    else:
+        st.markdown("💡 Try selecting from example athletes:")
         example_athletes = {
             "🌊 Ashleigh Gentle": "Ashleigh Gentle",
             "🔥 Gustav Iden": "Gustav Iden",
@@ -129,21 +163,30 @@ with st.sidebar:
             "🌍 Taylor Knibb": "Taylor Knibb",
             "🚴 Sam Long": "Sam Long"
         }
-
         for button_text, athlete_name in example_athletes.items():
             if st.button(button_text, key=f"example_{hash(athlete_name)}"):
                 st.session_state.selected_athlete = athlete_name
-                st.rerun()
+                entry = name_slug_map.get(athlete_name.lower())
+                if entry:
+                    st.session_state.selected_athlete = entry[0]  # original name
+                    st.session_state.selected_athlete_slug = entry[1]  # slug
+                    st.rerun()
+
     render_login_block(oauth2, redirect_uri)
+    if st.button("🔁 Reset Search"):
+        for key in ["selected_athlete", "selected_athlete_slug", "athlete_results_df"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
-# Log the search if an athlete was selected
-if "selected_athlete" in st.session_state:
-    log_athlete_search(bq_client, st.session_state.selected_athlete, BQ_ATHLETE_SEARCH_LOG)
-
-
+if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.session_state:
     athlete_name = st.session_state.selected_athlete
-    race_results_df = get_athlete_race_results(bq_client, athlete_name)
-    trend_df = get_athlete_pto_score_trend(bq_client, athlete_name)
+    athlete_slug = st.session_state.selected_athlete_slug
+
+    log_athlete_search(bq_client, athlete_name, BQ_ATHLETE_SEARCH_LOG)
+
+    race_results_df = get_athlete_race_results(bq_client, athlete_slug)
+    trend_df = get_athlete_pto_score_trend(bq_client, athlete_slug)
 
     if race_results_df.empty:
         st.warning(f"No race results found for **{athlete_name.title()}**.")
@@ -193,7 +236,6 @@ if "selected_athlete" in st.session_state:
             "overall_time": "Finish Time"
         })
         st.dataframe(display_df.drop(columns=["athlete_name", "athlete_country", "athlete_gender"]), hide_index=True)
-        trend_df = get_athlete_pto_score_trend(bq_client, athlete_name)
 
         if trend_df.empty:
             st.warning("No PTO score trend data found.")

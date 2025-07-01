@@ -122,7 +122,7 @@ else:
 def get_race_results(race_id):
     query = """
     SELECT
-        athlete_finishing_place, athlete_name, athlete_country,
+        athlete_slug, athlete_finishing_place, athlete_name, athlete_country,
         swim_time, t1_time, bike_time, t2_time, run_time, overall_time, overall_seconds
     FROM `trilytx.trilytx_fct.fct_race_results`
     WHERE unique_race_id = @race_id
@@ -137,6 +137,7 @@ def get_race_results(race_id):
 def get_race_segment_positions(race_id):
     query = """
     SELECT
+        athlete_slug,
         athlete_name,
         athlete_country,
         rank_after_swim,
@@ -204,7 +205,11 @@ if st.session_state.get("load_results_clicked", False):
                 display_df[col] = display_df[col].apply(lambda x: "" if pd.isna(x) else str(x))
 
         # Add hyperlinks to athlete names
-        display_df["Athlete"] = display_df["Athlete"].apply(make_athlete_link)
+        display_df["Athlete"] = display_df.apply(
+            lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+            axis=1
+        )
+        display_df = results_df.drop(columns=["athlete_slug"])
         display_df["Country"] = display_df["Country"].apply(get_flag)
         # Render with markdown (supports links, emojis, but not CSS)
 

@@ -288,10 +288,10 @@ def get_oauth():
     return oauth2, redirect_uri
 import urllib.parse
 
-def make_athlete_link(name: str) -> str:
+def make_athlete_link(name: str, slug: str) -> str:
     import urllib.parse
-    encoded_name = urllib.parse.quote(name)
-    return f'<a href="/Athlete_Profile?athlete_name={encoded_name}" target="_self">{name}</a>'
+    encoded_slug = urllib.parse.quote(slug)
+    return f'<a href="/Athlete_Profile?athlete_slug={encoded_slug}" target="_self">{name}</a>'
 
 
 import pycountry
