@@ -62,15 +62,23 @@ leaderboard = get_leaderboard()
 # ──────────────────────────────────────────────────────────────────────────────
 distance_options = leaderboard["distance_group"].dropna().unique().tolist()
 gender_options = leaderboard["athlete_gender"].dropna().unique().tolist()
+country_options = leaderboard["athlete_country"].dropna().unique().tolist()
+birth_year_options = sorted(leaderboard["athlete_year_of_birth"].dropna().unique(), reverse=True)
 
 st.sidebar.header("Filter Leaderboard")
-distance_filter = st.sidebar.selectbox("Distance Group", distance_options)
-gender_filter = st.sidebar.selectbox("Gender", options=["All"] + gender_options)
+
+distance_default_index = distance_options.index("Overall") if "Overall" in distance_options else 0
+distance_filter = st.sidebar.selectbox("Distance Group", distance_options, index=distance_default_index)
+gender_filter = st.sidebar.selectbox("Gender", options=["All"] + gender_options, index=0)
+country_filter = st.sidebar.selectbox("Country", options=["All"] + sorted(country_options), index=0)
+yob_filter = st.sidebar.selectbox("Year of Birth", options=["All"] + sorted(birth_year_options), index=0)
+
 num_rows = st.sidebar.selectbox(
     "How many top athletes to show?", 
     options=[3, 5, 10, 15, 20], 
-    index=0  # Default is top 3
+    index=0
 )
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Filtered View
@@ -87,6 +95,16 @@ if gender_filter != "All":
     this_week = this_week[this_week["athlete_gender"] == gender_filter]
     last_week = last_week[last_week["athlete_gender"] == gender_filter]
     six_months_ago = six_months_ago[six_months_ago["athlete_gender"] == gender_filter]
+
+if country_filter != "All":
+    this_week = this_week[this_week["athlete_country"] == country_filter]
+    last_week = last_week[last_week["athlete_country"] == country_filter]
+    six_months_ago = six_months_ago[six_months_ago["athlete_country"] == country_filter]
+
+if yob_filter != "All":
+    this_week = this_week[this_week["athlete_year_of_birth"] == yob_filter]
+    last_week = last_week[last_week["athlete_year_of_birth"] == yob_filter]
+    six_months_ago = six_months_ago[six_months_ago["athlete_year_of_birth"] == yob_filter]
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Movement Helper

@@ -151,6 +151,7 @@ with st.sidebar:
                     if display == selected_name_display:
                         st.session_state.selected_athlete = display
                         st.session_state.selected_athlete_slug = slug
+                        st.query_params.clear()
                         break
         else:
             st.warning("No close matches found. Try refining your input.")
@@ -170,6 +171,7 @@ with st.sidebar:
                 if entry:
                     st.session_state.selected_athlete = entry[0]  # original name
                     st.session_state.selected_athlete_slug = entry[1]  # slug
+                    st.query_params.clear()
                     st.rerun()
     if st.button("🔁 Reset Search"):
         for key in ["selected_athlete", "selected_athlete_slug", "athlete_results_df"]:
@@ -195,17 +197,21 @@ if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.sess
         athlete_country = race_results_df["athlete_country"].iloc[0]
         athlete_gender = race_results_df["athlete_gender"].iloc[0]
         athlete_overall_rank = trend_df["rank_overall_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
+        athlete_overall_swim_rank = trend_df["rank_swim_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
+        athlete_overall_bike_rank = trend_df["rank_bike_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
+        athlete_overall_run_rank = trend_df["rank_run_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
+
         athlete_national_rank = trend_df["rank_overall_pto_score_by_distance_group_athlete_gender_athlete_country_reporting_week_desc"].iloc[0]
-        athlete_swim_rank = trend_df["rank_swim_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
-        athlete_bike_rank = trend_df["rank_bike_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
-        athlete_run_rank = trend_df["rank_run_pto_score_by_distance_group_athlete_gender_reporting_week_desc"].iloc[0]
+        athlete_national_swim_rank = trend_df["rank_swim_pto_score_by_distance_group_athlete_gender_athlete_country_reporting_week_desc"].iloc[0]
+        athlete_national_bike_rank = trend_df["rank_bike_pto_score_by_distance_group_athlete_gender_athlete_country_reporting_week_desc"].iloc[0]
+        athlete_national_run_rank = trend_df["rank_run_pto_score_by_distance_group_athlete_gender_athlete_country_reporting_week_desc"].iloc[0]
 
 
 
         st.header(f"{athlete_name.title()}")
         st.markdown(f"**Country:** {athlete_country}  |  **Gender:** {athlete_gender}")
-        st.markdown(f"**Overall PTO Rank:** {athlete_overall_rank}  |  **National PTO Rank:** {athlete_national_rank}")
-        st.markdown(f"**Swim Rank:** {athlete_swim_rank} |  **Bike Rank:** {athlete_bike_rank}  |  **Run Rank:** {athlete_run_rank}")
+        st.markdown(f"**Overall PTO Rank:** {athlete_overall_rank}  |  **Overall Swim Rank:** {athlete_overall_swim_rank} |  **Overall Bike Rank:** {athlete_overall_bike_rank}  |  **Overall Run Rank:** {athlete_overall_run_rank}")
+        st.markdown(f"**National PTO Rank:** {athlete_national_rank}  |  **National Swim Rank:** {athlete_national_swim_rank} |  **National Bike Rank:** {athlete_national_bike_rank}  |  **National Run Rank:** {athlete_national_run_rank}")
         # Summary
         st.markdown("### 🧠 LLM Generated Athlete Summary")
 
