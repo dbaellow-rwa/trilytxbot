@@ -29,13 +29,29 @@ bq_client = bigquery.Client(credentials=credentials, project=project_id)
 @st.cache_data(ttl=3600)
 def get_leaderboard():
     query = """
-        SELECT 'this_week' as week_name, * FROM `trilytx.trilytx_fct.fct_pto_scores_weekly` 
-        WHERE reporting_week = DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK), INTERVAL 1 WEEK)
-        AND distance_group IN ('Half-Iron (70.3 miles)', 'Iron (140.6 miles)', '100 km', 'Overall')
-        UNION ALL
-        SELECT 'last_week' as week_name, * FROM `trilytx.trilytx_fct.fct_pto_scores_weekly` 
-        WHERE reporting_week = DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK), INTERVAL 2 WEEK)
-        AND distance_group IN ('Half-Iron (70.3 miles)', 'Iron (140.6 miles)', '100 km', 'Overall')
+            WITH base AS (
+            SELECT * FROM `trilytx.trilytx_fct.fct_pto_scores_weekly`
+            WHERE distance_group IN ('Half-Iron (70.3 miles)', 'Iron (140.6 miles)', '100 km', 'Overall')
+            ),
+            weeks AS (
+            SELECT
+                DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK), INTERVAL 1 WEEK) AS this_week,
+                DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK), INTERVAL 2 WEEK) AS last_week,
+                DATE_SUB(DATE_TRUNC(CURRENT_DATE(), WEEK), INTERVAL 26 WEEK) AS week_6mo_ago
+            )
+            SELECT 'this_week' AS week_name, b.*
+            FROM base b JOIN weeks w ON b.reporting_week = w.this_week
+
+            UNION ALL
+
+            SELECT 'last_week' AS week_name, b.*
+            FROM base b JOIN weeks w ON b.reporting_week = w.last_week
+
+            UNION ALL
+
+            SELECT '6mo_ago' AS week_name, b.*
+            FROM base b JOIN weeks w ON b.reporting_week = w.week_6mo_ago
+
     """
     return bq_client.query(query).to_dataframe()
 
@@ -50,7 +66,7 @@ gender_options = leaderboard["athlete_gender"].dropna().unique().tolist()
 st.sidebar.header("Filter Leaderboard")
 distance_filter = st.sidebar.selectbox("Distance Group", distance_options)
 gender_filter = st.sidebar.selectbox("Gender", options=["All"] + gender_options)
-num_rows = st.selectbox(
+num_rows = st.sidebar.selectbox(
     "How many top athletes to show?", 
     options=[3, 5, 10, 15, 20], 
     index=0  # Default is top 3
@@ -61,36 +77,45 @@ num_rows = st.selectbox(
 # ──────────────────────────────────────────────────────────────────────────────
 this_week = leaderboard[leaderboard["week_name"] == "this_week"].copy()
 last_week = leaderboard[leaderboard["week_name"] == "last_week"].copy()
-
+six_months_ago = leaderboard[leaderboard["week_name"] == "6mo_ago"].copy()
 
 this_week = this_week[this_week["distance_group"] == distance_filter]
 last_week = last_week[last_week["distance_group"] == distance_filter]
+six_months_ago = six_months_ago[six_months_ago["distance_group"] == distance_filter]
 
 if gender_filter != "All":
     this_week = this_week[this_week["athlete_gender"] == gender_filter]
     last_week = last_week[last_week["athlete_gender"] == gender_filter]
+    six_months_ago = six_months_ago[six_months_ago["athlete_gender"] == gender_filter]
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Movement Helper
 # ──────────────────────────────────────────────────────────────────────────────
-def get_rank(df, col):
-    return df.sort_values(col, ascending=False).reset_index(drop=True).assign(rank=lambda d: d.index + 1)
+def get_rank(df, score_col):
+    return df.sort_values(score_col, ascending=False).reset_index(drop=True).assign(rank=lambda d: d.index + 1)
 
-def get_movement(athlete, distance_group, gender, score_col, this_df, last_df):
+def get_movement(athlete, gender, distance_group, score_col, current_df, comparison_df):
     cur_rank = get_rank(
-        this_df[(this_df["distance_group"] == distance_group) & (this_df["athlete_gender"] == gender)],
+        current_df[(current_df["distance_group"] == distance_group) & (current_df["athlete_gender"] == gender)],
         score_col
     )
-    prev_rank = get_rank(
-        last_df[(last_df["distance_group"] == distance_group) & (last_df["athlete_gender"] == gender)],
+    cmp_rank = get_rank(
+        comparison_df[(comparison_df["distance_group"] == distance_group) & (comparison_df["athlete_gender"] == gender)],
         score_col
     )
     cur = cur_rank[cur_rank["athlete_name"] == athlete]["rank"].values
-    prev = prev_rank[prev_rank["athlete_name"] == athlete]["rank"].values
-    if len(cur) == 0 or len(prev) == 0:
-        return "–"
-    delta = prev[0] - cur[0]
-    return f"↑{delta}" if delta > 0 else (f"↓{abs(delta)}" if delta < 0 else "–")
+    cmp = cmp_rank[cmp_rank["athlete_name"] == athlete]["rank"].values
+    if len(cur) == 0 or len(cmp) == 0:
+        return "🆕"
+    delta = cmp[0] - cur[0]
+    if delta > 0:
+        return f"🟩↑ {delta}"
+    elif delta < 0:
+        return f"🟥↓ {abs(delta)}"
+    else:
+        return "⬜–"
+
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Display Leaderboards
@@ -110,12 +135,11 @@ for segment in ["swim_pto_score", "bike_pto_score", "run_pto_score", "overall_pt
     # Add rank as column
     top_df.insert(0, "Rank", range(1, len(top_df) + 1))
 
-    # Add movement
-    top_df["Rank Movement"] = top_df.apply(
+    top_df["Rank Movement (1W)"] = top_df.apply(
         lambda row: get_movement(
             row['athlete_name'],
-            row['distance_group'],
             row['athlete_gender'],
+            row['distance_group'],
             segment,
             this_week,
             last_week
@@ -123,14 +147,28 @@ for segment in ["swim_pto_score", "bike_pto_score", "run_pto_score", "overall_pt
         axis=1
     )
 
+    top_df["Rank Movement (6M)"] = top_df.apply(
+        lambda row: get_movement(
+            row['athlete_name'],
+            row['athlete_gender'],
+            row['distance_group'],
+            segment,
+            this_week,
+            six_months_ago
+        ),
+        axis=1
+)
+
+
     # Rename for display
     display_df = top_df[[
-        "Rank", "athlete_slug", "athlete_name", "athlete_country", segment, "Rank Movement"
+        "Rank", "athlete_slug", "athlete_name", "athlete_country", segment, "Rank Movement (1W)", "Rank Movement (6M)"
     ]].rename(columns={
         "athlete_name": "Athlete",
         "athlete_country": "Country",
         segment: "PTO Score",
-         "Rank Movement": "Movement (vs Last Week)"
+        "Rank Movement (1W)": "Movement (vs Last Week)",
+        "Rank Movement (6M)": "Movement (vs 6 Months Ago)"
     })
             # Add hyperlinks (make sure 'athlete_slug' is still present)
     if "athlete_slug" in display_df.columns:

@@ -8,6 +8,10 @@ from config.app_config import USE_LOCAL
 from utils.streamlit_utils import render_login_block,get_oauth
 oauth2, redirect_uri = get_oauth()
 
+import warnings
+if not USE_LOCAL:
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 # ───────────────────────────────
 # Shared Beta Overview Block
 # ───────────────────────────────
