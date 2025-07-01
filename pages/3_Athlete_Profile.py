@@ -184,7 +184,7 @@ if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.sess
     athlete_name = st.session_state.selected_athlete
     athlete_slug = st.session_state.selected_athlete_slug
 
-    log_athlete_search(bq_client, athlete_name, BQ_ATHLETE_SEARCH_LOG)
+    log_athlete_search(bq_client, athlete_slug, BQ_ATHLETE_SEARCH_LOG)
 
     race_results_df = get_athlete_race_results(bq_client, athlete_slug)
     trend_df = get_athlete_pto_score_trend(bq_client, athlete_slug)
