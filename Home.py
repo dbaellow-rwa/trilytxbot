@@ -15,94 +15,247 @@ if not USE_LOCAL:
 # ───────────────────────────────
 # Shared Beta Overview Block
 # ───────────────────────────────
-def show_beta_overview():
+
+# def show_beta_overview():
+#     audience = st.radio(
+#         "Choose your perspective:",
+#         ["Triathlon Community", "Data Scientists", "Sponsors & Media"],
+#         horizontal=True
+#     )
+
+#     if audience == "Triathlon Community":
+#         show_beta_overview_triathletes()
+#     elif audience == "Data Scientists":
+#         show_beta_overview_data_scientists()
+#     else:
+#         show_beta_overview_sponsors()
+
+
+def show_beta_overview_data_scientists():
+    st.markdown("""
+<div style="max-width: 900px; margin: 0 auto; text-align: left;">
+
+<h1 style="text-align: center;">🤖 Welcome to the Trilytx Beta</h1>
+
+<h3>🧠 What Is Trilytx?</h3>
+<p><strong>Trilytx</strong> is an AI assistant trained on triathlon performance data — optimized for natural language querying, race recap generation, and performance analytics across athletes, races, and seasons.</p>
+<p>This beta gives data scientists early access to explore how LLMs interact with structured sports data.</p>
+
+<hr/>
+
+<h3>🧪 Why This Beta Matters</h3>
+<p>We’re building a <strong>domain-adapted LLM</strong> for triathlon. That means fine-tuning on:</p>
+<ul>
+  <li>📊 Structured race data (e.g., splits, rankings, scores)</li>
+  <li>🧮 SQL queries aligned with real schemas</li>
+  <li>🗣️ Natural language questions from coaches, fans, and broadcasters</li>
+</ul>
+<p>This is your chance to shape how LLMs handle analytical reasoning in niche sports domains.</p>
+
+<hr/>
+
+<h3>📈 What’s New</h3>
+<ul>
+  <li><strong>Athlete Profiles</strong>: Dynamic views built from segment-level data, PTO scores, and rankings</li>
+  <li><strong>LLM Race Recaps</strong>: Full-text summaries generated from structured tables, with customizable prompts</li>
+</ul>
+
+<hr/>
+
+<h3>🧬 LLM Evolution: Beta vs Fine-Tuned Model</h3>
+<table style="width:100%; border-collapse: collapse;">
+<thead>
+  <tr>
+  <th style="text-align:left; background-color:#fff8dc; padding: 8px;">🟡 Current Beta</th>
+  <th style="text-align:left; background-color:#e6ffe6; padding: 8px;">🟢 Post-Fine-Tuning</th>
+  </tr>
+</thead>
+<tbody>
+  <tr><td>OpenAI base model (GPT-4)</td><td>Fine-tuned with triathlon-specific tables + QA pairs</td></tr>
+  <tr><td>Manual prompt engineering often required</td><td>Understands schema + joins natively</td></tr>
+  <tr><td>Relies on retries/table guessing</td><td>Deterministic path: NL → SQL → Result</td></tr>
+  <tr><td>Some ambiguity in answers</td><td>Sharper, more contextual responses</td></tr>
+  <tr><td>Struggles with nested or comparative logic</td><td>Handles ranking, deltas, and time-windowed analysis</td></tr>
+  <tr><td>Recaps are generated via generic LLM</td><td>Recaps tuned on real summaries + tri logic</td></tr>
+  <tr><td>Feedback = upvotes/downvotes</td><td>Retraining based on corrections + usage logs</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3>🧠 Help Us Train Better Models</h3>
+<ol>
+  <li>Query with real triathlon questions — simple and complex</li>
+  <li>Submit weird edge cases (e.g., “Top 5 swim gainers over 3 years”)</li>
+  <li>Use the LLM recap tool and tweak prompt styles</li>
+  <li>Vote on answer quality — this is used in future RLHF</li>
+</ol>
+
+<hr/>
+
+<h3>🎁 Beta Perks</h3>
+<ul>
+  <li>Early access to fine-tuned models + embeddings</li>
+  <li>Option to join developer Slack + feedback sessions</li>
+  <li>Recognition as a Founding Contributor</li>
+</ul>
+
+<hr/>
+
+<h3>🔗 Join the Beta</h3>
+<p><a href="https://docs.google.com/forms/d/e/1FAIpQLScAA8LmWCd0WUupNBp9QstbAtqkJNXwqkokTlJMb731xovzRA/viewform?usp=dialog" target="_blank"><strong>Click here to sign up</strong></a></p>
+
+<p>Thanks for helping us push the boundaries of domain-specific LLMs in sports analytics.</p>
+
+</div>
+""", unsafe_allow_html=True)
+
+def show_beta_overview_triathletes():
     st.markdown("""
 <div style="max-width: 900px; margin: 0 auto; text-align: left;">
 
 <h1 style="text-align: center;">🏁 Welcome to the Trilytx Beta</h1>
 
-<h3>🎯 Our Mission</h3>
-<p><strong>Trilytx</strong> is your AI-powered assistant for triathlon data — built to answer natural language questions, generate full-length race recaps, and spotlight performance trends across athletes, events, and seasons.</p>
-<p>You’re part of our <strong>Beta</strong> program, helping shape the future of triathlon analytics.</p>
+<h3>🎯 What Is Trilytx?</h3>
+<p><strong>Trilytx</strong> is your personal triathlon data assistant — built to answer your questions, track athletes, and create full-length race recaps using real race data.</p>
+<p>It’s fast, fun, and full of insight — and you’re helping us shape it as a <strong>Beta Tester</strong>.</p>
 
 <hr/>
 
-<h3>🤝 Why This Matters</h3>
-<p>We’re training a <strong>custom large language model (LLM)</strong> specifically for triathlon — but it needs real usage to learn:</p>
+<h3>💬 What Can I Ask?</h3>
 <ul>
-  <li>🧠 Smarter, faster answers tuned to the sport</li>
-  <li>⚙️ More accurate SQL generation + fewer hallucinations</li>
-  <li>📚 Deeper understanding of athlete, segment, and trend context</li>
+  <li>“How did [athlete name] perform in 2024 races?”</li>
+  <li>“Who had the fastest bike split at Ironman Texas?”</li>
+  <li>“Compare PTO scores for top women at 70.3 Worlds”</li>
 </ul>
-<p>Your questions and feedback are critical to building a world-class triathlon assistant.</p>
+<p>Just ask in plain English — no spreadsheets or code required.</p>
 
 <hr/>
 
-<h3>🆕 What’s New: Athlete Profiles + LLM Recaps</h3>
-<p>We now support two powerful features:</p>
+<h3>🚨 New Features This Week</h3>
 <ul>
-  <li><strong>Athlete Profiles</strong>: Race history, segment splits, PTO score trends, and rankings — all in one place</li>
-  <li><strong>LLM-Powered Recaps</strong>: Full-text summaries using structured race data + customizable instructions</li>
+  <li><strong>Athlete Profiles</strong>: View race history, segment splits, rankings, and PTO score trends — all in one place</li>
+  <li><strong>Race Recaps</strong>: Get a full written summary of any race — dramatic, technical, or playful, based on your style</li>
 </ul>
-<p>Whether you’re a fan, coach, or broadcaster — Trilytx makes tri data actionable, fast, and fun.</p>
 
 <hr/>
 
-<h3>🔍 Trilytx: Beta Today vs the Future</h3>
-
+<h3>🛠️ What’s In Beta (and What’s Coming)</h3>
 <table style="width:100%; border-collapse: collapse;">
-  <thead>
-    <tr>
-    <th style="text-align:left; background-color:#fff8dc; padding: 8px; color: black;">🟡 <strong>Current Beta</strong></th>
-    <th style="text-align:left; background-color:#e6ffe6; padding: 8px; color: black;">🟢 <strong>Post-Fine-Tuning</strong></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td style="padding: 8px;">Uses general-purpose OpenAI model</td><td style="padding: 8px;">Trained on triathlon-specific data + questions</td></tr>
-    <tr><td style="padding: 8px;">Manual prompt structuring needed for good SQL</td><td style="padding: 8px;">Understands schema + sport-specific logic natively</td></tr>
-    <tr><td style="padding: 8px;">Long prompts with table guessing + retries</td><td style="padding: 8px;">Direct Q → SQL → Answer in fewer steps</td></tr>
-    <tr><td style="padding: 8px;">Occasional vagueness or misunderstanding</td><td style="padding: 8px;">Tighter, more targeted, confident responses</td></tr>
-    <tr><td style="padding: 8px;">Limited ability to answer complex, layered queries</td><td style="padding: 8px;">Handles multi-part, comparative, and historical questions</td></tr>
-    <tr><td style="padding: 8px;">Race recaps are powered by GPT-4 and user prompts</td><td style="padding: 8px;">Recaps will be fine-tuned for segment logic + race context</td></tr>
-    <tr><td style="padding: 8px;">Basic feedback loop (votes only)</td><td style="padding: 8px;">Adaptive learning from high-quality answers + corrections</td></tr>
-  </tbody>
+<thead>
+  <tr>
+  <th style="text-align:left; background-color:#fff8dc; padding: 8px;">🟡 Now</th>
+  <th style="text-align:left; background-color:#e6ffe6; padding: 8px;">🟢 Soon</th>
+  </tr>
+</thead>
+<tbody>
+  <tr><td>Answers based on general AI</td><td>Answers trained specifically for triathlon</td></tr>
+  <tr><td>Some guesswork needed in phrasing</td><td>Understands your questions better over time</td></tr>
+  <tr><td>May not catch every nuance</td><td>More precise answers for multi-race and split comparisons</td></tr>
+  <tr><td>Basic feedback system</td><td>Smarter over time with your input</td></tr>
+  <tr><td>Race recaps via AI + your prompt</td><td>Recaps will “just work” with one click</td></tr>
+</tbody>
 </table>
 
 <hr/>
 
-<h3>🚀 How You Can Help</h3>
+<h3>🏆 Help Build the Future of Triathlon Data</h3>
 <ol>
-  <li><strong>Ask real questions</strong> — about athletes, events, matchups, rankings</li>
-  <li><strong>Use the recap tool</strong> with creative instructions (“focus on swim”, “make it dramatic”)</li>
-  <li><strong>Vote</strong> 👍 or 👎 on results — this feedback trains the future model</li>
-  <li><strong>Return regularly</strong> — each use sharpens Trilytx’s accuracy and insight</li>
+  <li><strong>Ask real questions</strong> — about your favorite athletes or upcoming races</li>
+  <li><strong>Generate a recap</strong> with your own twist (“make it dramatic”)</li>
+  <li><strong>Vote</strong> 👍 or 👎 on answers to help us improve</li>
+  <li><strong>Use it often</strong> — the more it’s used, the better it gets</li>
 </ol>
 
 <hr/>
 
-<h3>🎁 Beta Tester Perks</h3>
+<h3>🎁 Perks for Beta Testers</h3>
 <ul>
   <li>🚀 Early access to new tools and dashboards</li>
-  <li>🏅 Recognition as a Founding Beta User</li>
-  <li>🎉 Surprise rewards for top contributors</li>
+  <li>🏅 Founding Beta User recognition</li>
+  <li>🎉 Surprise rewards for top users</li>
 </ul>
 
 <hr/>
 
-<h3>📝 Join the Trilytx Beta</h3>
-<p>Want to be part of the leaderboard and shape triathlon’s future with AI?</p>
+<h3>✍️ Join the Trilytx Beta</h3>
 <p><a href="https://docs.google.com/forms/d/e/1FAIpQLScAA8LmWCd0WUupNBp9QstbAtqkJNXwqkokTlJMb731xovzRA/viewform?usp=dialog" target="_blank"><strong>Click here to sign up</strong></a></p>
 
-<p>Thanks for riding with us. 🏊‍♂️🚴‍♀️🏃‍♂️ Let’s make triathlon data intelligent, together.</p>
-
-<hr/>
+<p>Thanks for helping us build something amazing for the triathlon world. Let’s level up the way we understand the sport. 🏊‍♂️🚴‍♀️🏃‍♂️</p>
 
 </div>
 """, unsafe_allow_html=True)
 
+def show_beta_overview_sponsors():
+    st.markdown("""<div style="max-width: 900px; margin: 0 auto; text-align: left;">
+<h1 style="text-align: center;">📣 Welcome to the Trilytx Beta</h1>
 
+<h3>💡 What Is Trilytx?</h3>
+<p><strong>Trilytx</strong> is an AI-driven triathlon analytics platform that turns raw race data into stories, spotlights, and strategic insights. Whether you're a brand, broadcaster, or media partner, Trilytx makes it easy to track athlete performance, uncover trends, and bring data-driven context to the sport.</p>
 
+<hr/>
 
+<h3>📺 Why This Matters for You</h3>
+<ul>
+  <li>📊 <strong>Instant Insights</strong>: Need to know who's surging mid-season? Who’s most improved on the bike? Get the data in seconds.</li>
+  <li>📝 <strong>AI-Generated Recaps</strong>: Use structured race data to automatically create compelling summaries for web, email, or commentary.</li>
+  <li>📈 <strong>Performance Trends</strong>: Visualize PTO score progressions, segment strengths, and comparative head-to-heads over time.</li>
+</ul>
+
+<p>As triathlon coverage and sponsorship become more sophisticated, Trilytx helps turn complexity into clarity.</p>
+
+<hr/>
+
+<h3>🆕 What’s New in Beta</h3>
+<ul>
+  <li><strong>Athlete Profiles</strong>: Media-ready overviews of athlete stats, rankings, race history, and performance narratives</li>
+  <li><strong>Custom Race Recaps</strong>: Highlight any angle — drama, strategy, pacing, comeback stories</li>
+</ul>
+
+<hr/>
+
+<h3>📊 Current Capabilities vs the Future</h3>
+<table style="width:100%; border-collapse: collapse;">
+<thead>
+  <tr>
+  <th style="text-align:left; background-color:#fff8dc; padding: 8px;">🟡 Today</th>
+  <th style="text-align:left; background-color:#e6ffe6; padding: 8px;">🟢 Coming Soon</th>
+  </tr>
+</thead>
+<tbody>
+  <tr><td>OpenAI-powered insights + summaries</td><td>LLM trained on triathlon-specific storytelling + analytics</td></tr>
+  <tr><td>Manual recap tuning (tone, emphasis)</td><td>Auto-recaps tailored to audience type (fan, sponsor, coach)</td></tr>
+  <tr><td>Basic athlete comparison tools</td><td>Dynamic side-by-side matchup analysis with visual overlays</td></tr>
+  <tr><td>Feedback via thumbs-up/down</td><td>Custom content scoring + recommendations</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3>🎯 How You Can Use It</h3>
+<ol>
+  <li><strong>Generate Recaps</strong> for newsletters, podcasts, and coverage</li>
+  <li><strong>Track Sponsored Athletes</strong> across races and seasons</li>
+  <li><strong>Request Highlight Packs</strong> focused on brand-aligned metrics (e.g., fastest bike splits)</li>
+  <li><strong>Vote on Outputs</strong> — your feedback shapes what Trilytx becomes</li>
+</ol>
+
+<hr/>
+
+<h3>🎁 Beta Access Perks</h3>
+<ul>
+  <li>📊 Media dashboards coming soon</li>
+  <li>🎙️ Recap generator for newsletters + scripts</li>
+  <li>🏅 Priority access for partner integrations</li>
+</ul>
+
+<hr/>
+
+<h3>📬 Join the Beta</h3>
+<p><a href="https://docs.google.com/forms/d/e/1FAIpQLScAA8LmWCd0WUupNBp9QstbAtqkJNXwqkokTlJMb731xovzRA/viewform?usp=dialog" target="_blank"><strong>Click here to sign up</strong></a></p>
+
+<p>Help us build the smartest storytelling engine in endurance sports. From spreadsheets to spotlight — Trilytx makes it automatic.</p>
+</div>""", unsafe_allow_html=True)
 
 # ───────────────────────────────
 # Render Page
@@ -111,4 +264,4 @@ def show_beta_overview():
 with st.sidebar:
     render_login_block(oauth2, redirect_uri)
 
-show_beta_overview()
+show_beta_overview_triathletes()
