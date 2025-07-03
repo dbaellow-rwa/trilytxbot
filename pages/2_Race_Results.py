@@ -8,7 +8,7 @@ from utils.streamlit_utils import log_race_search, log_race_recap_generate, make
 import json
 oauth2, redirect_uri = get_oauth()
 
-st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
+# st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
 st.title("🏁 Race Results Viewer")
 
 # Load credentials and BigQuery client

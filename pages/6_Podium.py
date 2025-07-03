@@ -8,7 +8,7 @@ from utils.streamlit_utils import make_race_link, render_login_block, get_oauth,
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
 # ──────────────────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="Trilytx Race Podiums", layout="wide")
+# st.set_page_config(page_title="Trilytx Race Podiums", layout="wide")
 
 if "filters_initialized" not in st.session_state:
     st.session_state.time_range = "Last 365 Days"

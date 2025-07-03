@@ -8,7 +8,7 @@ from utils.streamlit_utils import get_flag, render_login_block, get_oauth, make_
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
 # ──────────────────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="Leaderboard", layout="wide")
+# st.set_page_config(page_title="Leaderboard", layout="wide")
 st.title("🏆 Current Leaderboard")
 st.markdown("""
 Welcome to the **Trilytx Race Leaderboard** 🏆  
@@ -67,140 +67,175 @@ birth_year_options = sorted(leaderboard["athlete_year_of_birth"].dropna().unique
 
 st.sidebar.header("Filter Leaderboard")
 
-distance_default_index = distance_options.index("Overall") if "Overall" in distance_options else 0
-distance_filter = st.sidebar.selectbox("Distance Group", distance_options, index=distance_default_index)
-gender_filter = st.sidebar.selectbox("Gender", options=["All"] + gender_options, index=0)
-country_filter = st.sidebar.selectbox("Country", options=["All"] + sorted(country_options), index=0)
-yob_filter = st.sidebar.selectbox("Year of Birth", options=["All"] + sorted(birth_year_options), index=0)
+# Initialize session state filters if not already set
+defaults = {
+    "distance_filter": "Overall",
+    "gender_filter": "All",
+    "country_filter": "All",
+    "yob_filter": "All",
+    "num_rows": 3,
+    "filters_applied": False
+}
 
-num_rows = st.sidebar.selectbox(
-    "How many top athletes to show?", 
-    options=[3, 5, 10, 15, 20], 
-    index=0
-)
+if "filters_applied" not in st.session_state:
+    st.session_state["filters_applied"] = True
+
+for key, val in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = val
+
+# Temporary (UI-bound) selections
+st.sidebar.header("Filter Leaderboard")
+temp_distance = st.sidebar.selectbox("Distance Group", distance_options, index=distance_options.index(st.session_state["distance_filter"]))
+temp_gender = st.sidebar.selectbox("Gender", options=["All"] + gender_options, index=(["All"] + gender_options).index(st.session_state["gender_filter"]))
+temp_country = st.sidebar.selectbox("Country", options=["All"] + sorted(country_options), index=(["All"] + sorted(country_options)).index(st.session_state["country_filter"]))
+temp_yob = st.sidebar.selectbox("Year of Birth", options=["All"] + birth_year_options, index=(["All"] + birth_year_options).index(st.session_state["yob_filter"]))
+temp_num_rows = st.sidebar.selectbox("How many top athletes to show?", options=[3, 5, 10, 15, 20], index=[3, 5, 10, 15, 20].index(st.session_state["num_rows"]))
+
+# Buttons
+search_clicked = st.sidebar.button("🔍 Search")
+reset_clicked = st.sidebar.button("🔄 Reset Filters")
+
+if reset_clicked:
+    for key, val in defaults.items():
+        st.session_state[key] = val
+        st.session_state["filters_applied"] = True  # 👈 show default data
+
+    st.rerun()
+
+if search_clicked:
+    st.session_state["distance_filter"] = temp_distance
+    st.session_state["gender_filter"] = temp_gender
+    st.session_state["country_filter"] = temp_country
+    st.session_state["yob_filter"] = temp_yob
+    st.session_state["num_rows"] = temp_num_rows
+    st.session_state["filters_applied"] = True
+    st.rerun()
+
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Filtered View
 # ──────────────────────────────────────────────────────────────────────────────
-this_week = leaderboard[leaderboard["week_name"] == "this_week"].copy()
-last_week = leaderboard[leaderboard["week_name"] == "last_week"].copy()
-six_months_ago = leaderboard[leaderboard["week_name"] == "6mo_ago"].copy()
+if st.session_state["filters_applied"]:
+    this_week = leaderboard[leaderboard["week_name"] == "this_week"].copy()
+    last_week = leaderboard[leaderboard["week_name"] == "last_week"].copy()
+    six_months_ago = leaderboard[leaderboard["week_name"] == "6mo_ago"].copy()
 
-this_week = this_week[this_week["distance_group"] == distance_filter]
-last_week = last_week[last_week["distance_group"] == distance_filter]
-six_months_ago = six_months_ago[six_months_ago["distance_group"] == distance_filter]
+    this_week = this_week[this_week["distance_group"] == st.session_state["distance_filter"]]
+    last_week = last_week[last_week["distance_group"] == st.session_state["distance_filter"]]
+    six_months_ago = six_months_ago[six_months_ago["distance_group"] == st.session_state["distance_filter"]]
 
-if gender_filter != "All":
-    this_week = this_week[this_week["athlete_gender"] == gender_filter]
-    last_week = last_week[last_week["athlete_gender"] == gender_filter]
-    six_months_ago = six_months_ago[six_months_ago["athlete_gender"] == gender_filter]
+    if st.session_state["gender_filter"] != "All":
+        this_week = this_week[this_week["athlete_gender"] == st.session_state["gender_filter"]]
+        last_week = last_week[last_week["athlete_gender"] == st.session_state["gender_filter"]]
+        six_months_ago = six_months_ago[six_months_ago["athlete_gender"] == st.session_state["gender_filter"]]
 
-if country_filter != "All":
-    this_week = this_week[this_week["athlete_country"] == country_filter]
-    last_week = last_week[last_week["athlete_country"] == country_filter]
-    six_months_ago = six_months_ago[six_months_ago["athlete_country"] == country_filter]
+    if st.session_state["country_filter"] != "All":
+        this_week = this_week[this_week["athlete_country"] == st.session_state["country_filter"]]
+        last_week = last_week[last_week["athlete_country"] == st.session_state["country_filter"]]
+        six_months_ago = six_months_ago[six_months_ago["athlete_country"] == st.session_state["country_filter"]]
 
-if yob_filter != "All":
-    this_week = this_week[this_week["athlete_year_of_birth"] == yob_filter]
-    last_week = last_week[last_week["athlete_year_of_birth"] == yob_filter]
-    six_months_ago = six_months_ago[six_months_ago["athlete_year_of_birth"] == yob_filter]
+    if st.session_state["yob_filter"] != "All":
+        this_week = this_week[this_week["athlete_year_of_birth"] == st.session_state["yob_filter"]]
+        last_week = last_week[last_week["athlete_year_of_birth"] == st.session_state["yob_filter"]]
+        six_months_ago = six_months_ago[six_months_ago["athlete_year_of_birth"] == st.session_state["yob_filter"]]
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Movement Helper
-# ──────────────────────────────────────────────────────────────────────────────
-def get_rank(df, score_col):
-    return df.sort_values(score_col, ascending=False).reset_index(drop=True).assign(rank=lambda d: d.index + 1)
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Movement Helper
+    # ──────────────────────────────────────────────────────────────────────────────
+    def get_rank(df, score_col):
+        return df.sort_values(score_col, ascending=False).reset_index(drop=True).assign(rank=lambda d: d.index + 1)
 
-def get_movement(athlete, gender, distance_group, score_col, current_df, comparison_df):
-    cur_rank = get_rank(
-        current_df[(current_df["distance_group"] == distance_group) & (current_df["athlete_gender"] == gender)],
-        score_col
-    )
-    cmp_rank = get_rank(
-        comparison_df[(comparison_df["distance_group"] == distance_group) & (comparison_df["athlete_gender"] == gender)],
-        score_col
-    )
-    cur = cur_rank[cur_rank["athlete_name"] == athlete]["rank"].values
-    cmp = cmp_rank[cmp_rank["athlete_name"] == athlete]["rank"].values
-    if len(cur) == 0 or len(cmp) == 0:
-        return "🆕"
-    delta = cmp[0] - cur[0]
-    if delta > 0:
-        return f"🟩↑ {delta}"
-    elif delta < 0:
-        return f"🟥↓ {abs(delta)}"
-    else:
-        return "⬜–"
-
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Display Leaderboards
-# ──────────────────────────────────────────────────────────────────────────────
-st.subheader(f"Top {num_rows} by Segment")
-
-segment_emojis = {
-    "swim_pto_score": "🏊",
-    "bike_pto_score": "🚴",
-    "run_pto_score": "🏃",
-    "overall_pto_score": "🏆"
-}
-
-for segment in ["swim_pto_score", "bike_pto_score", "run_pto_score", "overall_pto_score"]:
-    top_df = this_week.sort_values(segment, ascending=False).head(num_rows).copy()
-
-    # Add rank as column
-    top_df.insert(0, "Rank", range(1, len(top_df) + 1))
-
-    top_df["Rank Movement (1W)"] = top_df.apply(
-        lambda row: get_movement(
-            row['athlete_name'],
-            row['athlete_gender'],
-            row['distance_group'],
-            segment,
-            this_week,
-            last_week
-        ),
-        axis=1
-    )
-
-    top_df["Rank Movement (6M)"] = top_df.apply(
-        lambda row: get_movement(
-            row['athlete_name'],
-            row['athlete_gender'],
-            row['distance_group'],
-            segment,
-            this_week,
-            six_months_ago
-        ),
-        axis=1
-)
+    def get_movement(athlete, gender, distance_group, score_col, current_df, comparison_df):
+        cur_rank = get_rank(
+            current_df[(current_df["distance_group"] == distance_group) & (current_df["athlete_gender"] == gender)],
+            score_col
+        )
+        cmp_rank = get_rank(
+            comparison_df[(comparison_df["distance_group"] == distance_group) & (comparison_df["athlete_gender"] == gender)],
+            score_col
+        )
+        cur = cur_rank[cur_rank["athlete_name"] == athlete]["rank"].values
+        cmp = cmp_rank[cmp_rank["athlete_name"] == athlete]["rank"].values
+        if len(cur) == 0 or len(cmp) == 0:
+            return "🆕"
+        delta = cmp[0] - cur[0]
+        if delta > 0:
+            return f"🟩↑ {delta}"
+        elif delta < 0:
+            return f"🟥↓ {abs(delta)}"
+        else:
+            return "⬜–"
 
 
-    # Rename for display
-    display_df = top_df[[
-        "Rank", "athlete_slug", "athlete_name", "athlete_country", segment, "Rank Movement (1W)", "Rank Movement (6M)"
-    ]].rename(columns={
-        "athlete_name": "Athlete",
-        "athlete_country": "Country",
-        segment: "PTO Score",
-        "Rank Movement (1W)": "Movement (vs Last Week)",
-        "Rank Movement (6M)": "Movement (vs 6 Months Ago)"
-    })
-            # Add hyperlinks (make sure 'athlete_slug' is still present)
-    if "athlete_slug" in display_df.columns:
-        display_df["athlete_slug"] = display_df["athlete_slug"]
-        display_df["Athlete"] = display_df.apply(
-            lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+
+    # ──────────────────────────────────────────────────────────────────────────────
+    # Display Leaderboards
+    # ──────────────────────────────────────────────────────────────────────────────
+    st.subheader(f'Top {st.session_state["num_rows"]} by Segment')
+
+    segment_emojis = {
+        "swim_pto_score": "🏊",
+        "bike_pto_score": "🚴",
+        "run_pto_score": "🏃",
+        "overall_pto_score": "🏆"
+    }
+
+    for segment in ["swim_pto_score", "bike_pto_score", "run_pto_score", "overall_pto_score"]:
+        top_df = this_week.sort_values(segment, ascending=False).head(st.session_state["num_rows"]).copy()
+
+        # Add rank as column
+        top_df.insert(0, "Rank", range(1, len(top_df) + 1))
+
+        top_df["Rank Movement (1W)"] = top_df.apply(
+            lambda row: get_movement(
+                row['athlete_name'],
+                row['athlete_gender'],
+                row['distance_group'],
+                segment,
+                this_week,
+                last_week
+            ),
             axis=1
         )
-        display_df.drop(columns=["athlete_slug"], inplace=True)
-            # Add country flags safely
-    if "Country" in display_df.columns:
-        display_df["Country"] = display_df["Country"].apply(get_flag)
-    emoji = segment_emojis.get(segment, "📊")
-    label = segment.replace("_pto_score", "").capitalize()
 
-    st.markdown(f"#### {emoji} {label}")
-    st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
+        top_df["Rank Movement (6M)"] = top_df.apply(
+            lambda row: get_movement(
+                row['athlete_name'],
+                row['athlete_gender'],
+                row['distance_group'],
+                segment,
+                this_week,
+                six_months_ago
+            ),
+            axis=1
+    )
+
+
+        # Rename for display
+        display_df = top_df[[
+            "Rank", "athlete_slug", "athlete_name", "athlete_country", segment, "Rank Movement (1W)", "Rank Movement (6M)"
+        ]].rename(columns={
+            "athlete_name": "Athlete",
+            "athlete_country": "Country",
+            segment: "PTO Score",
+            "Rank Movement (1W)": "Movement (vs Last Week)",
+            "Rank Movement (6M)": "Movement (vs 6 Months Ago)"
+        })
+                # Add hyperlinks (make sure 'athlete_slug' is still present)
+        if "athlete_slug" in display_df.columns:
+            display_df["athlete_slug"] = display_df["athlete_slug"]
+            display_df["Athlete"] = display_df.apply(
+                lambda row: make_athlete_link(row["Athlete"], row["athlete_slug"]),
+                axis=1
+            )
+            display_df.drop(columns=["athlete_slug"], inplace=True)
+                # Add country flags safely
+        if "Country" in display_df.columns:
+            display_df["Country"] = display_df["Country"].apply(get_flag)
+        emoji = segment_emojis.get(segment, "📊")
+        label = segment.replace("_pto_score", "").capitalize()
+
+        st.markdown(f"#### {emoji} {label}")
+        st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)

@@ -23,7 +23,7 @@ from utils.security_utils import is_safe_sql
 from utils.about_the_chatbot import render_about
 
 oauth2, redirect_uri = get_oauth()
-st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
+# st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
 st.title("🤖 Trilytx Chatbot")
 render_about()
 

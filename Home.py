@@ -11,7 +11,7 @@ oauth2, redirect_uri = get_oauth()
 import warnings
 if not USE_LOCAL:
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-
+st.set_page_config(page_title="Home", layout="wide")
 # ───────────────────────────────
 # Shared Beta Overview Block
 # ───────────────────────────────

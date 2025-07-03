@@ -4,7 +4,7 @@ oauth2, redirect_uri = get_oauth()
 
 
 
-st.set_page_config(page_title="About the Trilytx Chatbot", layout="wide")
+# st.set_page_config(page_title="About the Trilytx Chatbot", layout="wide")
 with st.sidebar:
     render_login_block(oauth2, redirect_uri)
 

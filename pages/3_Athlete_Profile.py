@@ -21,7 +21,7 @@ if "user" not in st.session_state and "user" in cookies:
 credentials, project_id, _ = load_credentials(USE_LOCAL)
 bq_client = bigquery.Client(credentials=credentials, project=project_id)
 
-st.set_page_config(page_title="🏃 Athlete Profile Viewer", layout="wide")
+# st.set_page_config(page_title="🏃 Athlete Profile Viewer", layout="wide")
 # Support loading directly from ?athlete_name= query
 # Sidebar: athlete search
 from difflib import get_close_matches
