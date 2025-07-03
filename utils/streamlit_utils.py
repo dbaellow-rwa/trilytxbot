@@ -15,11 +15,11 @@ import requests as pyrequests  # rename to avoid conflict with google.auth.trans
 from streamlit_oauth import OAuth2Component
 from config.app_config import USE_LOCAL
 
-def log_athlete_search(bq_client: bigquery.Client,  athlete_slug: str, full_table_path: str,):
+def log_athlete_search(bq_client: bigquery.Client,  race_id: str, full_table_path: str,):
     user_email = st.session_state.get("user", {}).get("email", "unknown")
 
     row = {
-        "athlete_slug": athlete_slug,
+        "athlete_name": race_id,
         "user_email": user_email,
         "timestamp": datetime.datetime.utcnow().isoformat()
     }
@@ -309,4 +309,3 @@ def get_flag(country_value):
         return f"<img src='https://flagicons.lipis.dev/flags/4x3/{code}.svg' height='16' style='vertical-align:middle; margin-right:4px;'> {country_value}"
     except:
         pass
-    return country_value  # fallback
