@@ -3,7 +3,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Application Settings
 # ──────────────────────────────────────────────────────────────────────────────
-USE_LOCAL = 0 # Set to 0 for pushing to production, 1 for local development
+USE_LOCAL = 0  # Set to 0 for pushing to production, 1 for local development
 
 # ──────────────────────────────────────────────────────────────────────────────
 # BigQuery Logging Table Paths

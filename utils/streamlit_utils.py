@@ -216,6 +216,12 @@ def render_login_block(oauth2, redirect_uri):
                     cookies.save()
                     st.rerun()
 
+        st.markdown("""
+        <div style="background-color:#e0f0ff;padding:10px;border-radius:10px;text-align:center;">
+            👆 <strong style="color:black;">Please log in with Google to access full features.</strong>
+        </div>
+        """, unsafe_allow_html=True)
+
 # config.py or streamlit_utils.py (this part is fine)
 def get_oauth():
     # Make sure OAuth2Component is imported globally in this file or passed in
