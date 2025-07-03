@@ -249,12 +249,19 @@ if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.sess
         display_df.drop(columns=["athlete_slug", "unique_race_id", "athlete_name", "athlete_country", "athlete_gender"], inplace=True)
         # Add medal emojis for top 3 places
         if "Place" in display_df.columns:
-            display_df["Place"] = display_df["Place"].apply(lambda x: str(int(x)) if pd.notna(x) and str(x).isdigit() else x)
-            display_df["Place"] = display_df["Place"].replace({
-                "1": "🥇 1",
-                "2": "🥈 2",
-                "3": "🥉 3"
-            })
+            # Convert to numeric, coercing errors to NaN.
+            display_df["Place_numeric"] = pd.to_numeric(display_df["Place"], errors='coerce')
+
+            # Apply emojis based on numeric place, handling NaN gracefully
+            display_df["Place"] = display_df.apply(lambda row: 
+                f"🥇 {int(row['Place_numeric'])}" if pd.notna(row['Place_numeric']) and row['Place_numeric'] == 1 else
+                f"🥈 {int(row['Place_numeric'])}" if pd.notna(row['Place_numeric']) and row['Place_numeric'] == 2 else
+                f"🥉 {int(row['Place_numeric'])}" if pd.notna(row['Place_numeric']) and row['Place_numeric'] == 3 else
+                "❌ DNF" if pd.isna(row['Place_numeric']) else str(row["Place"])
+            , axis=1)
+            
+            # Drop the temporary numeric column
+            display_df.drop(columns=["Place_numeric"], inplace=True)
 
         st.markdown(display_df.to_markdown(index=False), unsafe_allow_html=True)
         if trend_df.empty:
