@@ -189,9 +189,9 @@ def render_login_block(oauth2, redirect_uri, cookies):
         st.markdown(f"**Email:** {user_info.get('email')}")
 
         if st.button("Logout"):
-            del st.session_state["user"]
-            del cookies["user"]
-            cookies.save() # Save cookies after deletion
+            st.session_state.pop("user", None)
+            cookies["user"] = ""  # This effectively deletes it
+            cookies.save()
             st.rerun()
     else:
         # User not in session_state, display login button
@@ -274,9 +274,11 @@ def init_cookies_and_restore_user():
 
     if "user" not in st.session_state and "user" in cookies:
         try:
-            st.session_state["user"] = json.loads(cookies["user"])
+            cookie_value = cookies["user"]
+            if cookie_value:
+                st.session_state["user"] = json.loads(cookie_value)
         except Exception:
-            del cookies["user"]
+            cookies["user"] = ""  # Clear corrupted value
             cookies.save()
             st.warning("❌ Failed to decode user info from cookie.")
 

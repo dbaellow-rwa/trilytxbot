@@ -22,14 +22,6 @@ import json
 oauth2, redirect_uri = get_oauth()
 
 
-if "user" not in st.session_state and "user" in cookies:
-    try:
-        st.session_state["user"] = json.loads(cookies["user"])
-    except Exception:
-        del cookies["user"]
-        cookies.save()
-        st.warning("❌ Failed to decode user info.")
-
 
 # Load credentials and BigQuery client
 credentials, project_id, _ = load_credentials(USE_LOCAL)

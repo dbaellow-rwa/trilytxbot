@@ -42,14 +42,6 @@ if "unique_race_id" in query_params:
 
 
 
-
-if "user" not in st.session_state and "user" in cookies:
-    try:
-        st.session_state["user"] = json.loads(cookies["user"])
-    except Exception:
-        del cookies["user"]
-        cookies.save()
-        st.warning("❌ Failed to decode user info.")
 # Initialize session state
 for key in ["selected_race_id", "filters_applied", "races_df"]:
     if key not in st.session_state:
