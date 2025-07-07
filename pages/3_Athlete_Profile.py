@@ -223,15 +223,18 @@ if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.sess
         # Summary
         st.markdown("### 🧠 LLM Generated Athlete Summary")
 
-        if st.session_state.get("user") is not None:
+        user_info = st.session_state.get("user")
+
+        if isinstance(user_info, dict) and user_info.get("email"):
             instructions = st.text_area("Optional LLM prompt instructions:")
-            
+
             if st.button("🧠 Generate Athlete Recap"):
                 with st.spinner("Generating summary - This might take 10–15 seconds..."):
                     summary = generate_athlete_summary_for_athlete(athlete_name, instructions)
                     st.markdown(summary)
         else:
             st.warning("🔒 Please log in on the home page to generate summaries.")
+
 
 
         st.markdown("### 📈 Race History")
