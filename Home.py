@@ -272,6 +272,6 @@ def show_beta_overview_sponsors():
 # ───────────────────────────────
 
 with st.sidebar:
-    render_login_block(oauth2, redirect_uri)
+    render_login_block(oauth2, redirect_uri, cookies)
 
 show_beta_overview_triathletes()
