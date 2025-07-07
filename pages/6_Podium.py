@@ -1,4 +1,13 @@
 import streamlit as st
+st.set_page_config(page_title="Trilytx Race Podiums", layout="wide")
+st.title("🏁 Race Podiums")
+st.markdown("""
+Welcome to the **Trilytx Race Podiums** dashboard.  
+Here you’ll find the top 3 segment performers (Swim, Bike, Run, and Overall) for each gender and distance group based on race results.
+
+Use the filters in the sidebar to view podiums for a specific race distance and gender.  
+Each segment podium displays athletes ranked by time, along with their country and race name.
+""")
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
@@ -8,7 +17,6 @@ from utils.streamlit_utils import make_race_link, render_login_block, get_oauth,
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
 # ──────────────────────────────────────────────────────────────────────────────
-# st.set_page_config(page_title="Trilytx Race Podiums", layout="wide")
 
 if "filters_initialized" not in st.session_state:
     st.session_state.time_range = "Last 365 Days"
@@ -24,14 +32,7 @@ if "filters_initialized" not in st.session_state:
 
 
 
-st.title("🏁 Race Podiums")
-st.markdown("""
-Welcome to the **Trilytx Race Podiums** dashboard.  
-Here you’ll find the top 3 segment performers (Swim, Bike, Run, and Overall) for each gender and distance group based on race results.
 
-Use the filters in the sidebar to view podiums for a specific race distance and gender.  
-Each segment podium displays athletes ranked by time, along with their country and race name.
-""")
 credentials, project_id, _ = load_credentials(USE_LOCAL)
 bq_client = bigquery.Client(credentials=credentials, project=project_id)
 

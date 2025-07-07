@@ -4,11 +4,11 @@ import time
 import uuid
 import pandas as pd
 import streamlit as st
+st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
+st.title("🤖 Trilytx Chatbot")
+# ──────────────────────────────────────────────────────────────────────────────
 import altair as alt
 import datetime
-
-
-
 
 # Add the project root directory ('trilytxbot') to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -23,8 +23,6 @@ from utils.security_utils import is_safe_sql
 from utils.about_the_chatbot import render_about
 
 oauth2, redirect_uri = get_oauth()
-# st.set_page_config(page_title="Trilytx SQL Chatbot", layout="wide")
-st.title("🤖 Trilytx Chatbot")
 render_about()
 
 

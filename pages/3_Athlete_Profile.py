@@ -1,4 +1,6 @@
 import streamlit as st
+st.set_page_config(page_title="🏃 Athlete Profile Viewer", layout="wide")
+
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
@@ -21,7 +23,6 @@ if "user" not in st.session_state and "user" in cookies:
 credentials, project_id, _ = load_credentials(USE_LOCAL)
 bq_client = bigquery.Client(credentials=credentials, project=project_id)
 
-# st.set_page_config(page_title="🏃 Athlete Profile Viewer", layout="wide")
 # Support loading directly from ?athlete_name= query
 # Sidebar: athlete search
 from difflib import get_close_matches

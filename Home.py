@@ -1,6 +1,8 @@
 # cd "C:\Users\dusti\OneDrive\Documents\GitHub\trilytxbot"
 # streamlit run Home.py
 import streamlit as st
+st.set_page_config(page_title="Home", layout="wide")
+
 import json
 import requests as pyrequests  # rename to avoid conflict with google.auth.transport.requests
 from streamlit_oauth import OAuth2Component
@@ -11,7 +13,6 @@ oauth2, redirect_uri = get_oauth()
 import warnings
 if not USE_LOCAL:
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-st.set_page_config(page_title="Home", layout="wide")
 # ───────────────────────────────
 # Shared Beta Overview Block
 # ───────────────────────────────

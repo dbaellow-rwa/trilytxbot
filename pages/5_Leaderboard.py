@@ -1,14 +1,5 @@
 import streamlit as st
-import pandas as pd
-from google.cloud import bigquery
-from utils.bq_utils import load_credentials
-from config.app_config import USE_LOCAL
-from utils.streamlit_utils import get_flag, render_login_block, get_oauth, make_athlete_link
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Setup
-# ──────────────────────────────────────────────────────────────────────────────
-# st.set_page_config(page_title="Leaderboard", layout="wide")
+st.set_page_config(page_title="Leaderboard", layout="wide")
 st.title("🏆 Current Leaderboard")
 st.markdown("""
 Welcome to the **Trilytx Race Leaderboard** 🏆  
@@ -19,6 +10,16 @@ For each segment, you’ll see the top performers ranked by time, along with the
 
 Whether you're scouting top talent or tracking trends, this is your podium view into the latest race data.
 """)
+
+import pandas as pd
+from google.cloud import bigquery
+from utils.bq_utils import load_credentials
+from config.app_config import USE_LOCAL
+from utils.streamlit_utils import get_flag, render_login_block, get_oauth, make_athlete_link
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Setup
+# ──────────────────────────────────────────────────────────────────────────────
 
 credentials, project_id, _ = load_credentials(USE_LOCAL)
 bq_client = bigquery.Client(credentials=credentials, project=project_id)
