@@ -51,8 +51,9 @@ if "user" not in st.session_state and "user" in cookies:
     try:
         st.session_state["user"] = json.loads(cookies["user"])
     except Exception:
+        del cookies["user"]
+        cookies.save()
         st.warning("❌ Failed to decode user info.")
-
 # Initialize session state
 for key in ["selected_race_id", "filters_applied", "races_df"]:
     if key not in st.session_state:
@@ -319,8 +320,8 @@ if st.session_state.get("load_results_clicked", False):
         st.info("No segment ranking data available for this race.")
     st.markdown("### 📋 LLM Generated Race Recap")
 
-    if "user" in st.session_state:
-        # Initialize session state for instructions if not present
+    user_info = st.session_state.get("user")
+    if isinstance(user_info, dict) and user_info.get("email"):
         if "recap_instructions" not in st.session_state:
             st.session_state["recap_instructions"] = ""
 
