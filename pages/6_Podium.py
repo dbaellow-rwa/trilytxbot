@@ -1,5 +1,8 @@
 import streamlit as st
-st.set_page_config(page_title="Trilytx Race Podiums", layout="wide")
+st.set_page_config(page_title="Trilytx Race Podiums",
+    page_icon="https://github.com/dbaellow-rwa/trilytxbot/blob/fe681401e506fd4deccca9fa7c0c751c2cbbf070/assets/logo.png?raw=true",
+    initial_sidebar_state="expanded",
+    layout="wide")
 st.title("🏁 Race Podiums")
 st.markdown("""
 Welcome to the **Trilytx Race Podiums** dashboard.  
@@ -8,6 +11,12 @@ Here you’ll find the top 3 segment performers (Swim, Bike, Run, and Overall) f
 Use the filters in the sidebar to view podiums for a specific race distance and gender.  
 Each segment podium displays athletes ranked by time, along with their country and race name.
 """)
+# Cookie management for user authentication
+from streamlit_cookies_manager import EncryptedCookieManager
+import os
+cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
+if not cookies.ready():
+    st.stop()
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials

@@ -1,7 +1,15 @@
 import streamlit as st
-st.set_page_config(page_title="🏁 Race Results Viewer", layout="wide")
+st.set_page_config(page_title="🏁 Race Results Viewer",
+    page_icon="https://github.com/dbaellow-rwa/trilytxbot/blob/fe681401e506fd4deccca9fa7c0c751c2cbbf070/assets/logo.png?raw=true",
+    initial_sidebar_state="expanded",
+    layout="wide")
 st.title("🏁 Race Results Viewer")
 # ──────────────────────────────────────────────────────────────────────────────
+from streamlit_cookies_manager import EncryptedCookieManager
+import os
+cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
+if not cookies.ready():
+    st.stop()
 # Imports
 import pandas as pd
 from google.cloud import bigquery

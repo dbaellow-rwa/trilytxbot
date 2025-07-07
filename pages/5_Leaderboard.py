@@ -10,7 +10,12 @@ For each segment, you’ll see the top performers ranked by time, along with the
 
 Whether you're scouting top talent or tracking trends, this is your podium view into the latest race data.
 """)
-
+# Cookie management for user authentication
+from streamlit_cookies_manager import EncryptedCookieManager
+import os
+cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
+if not cookies.ready():
+    st.stop()
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials

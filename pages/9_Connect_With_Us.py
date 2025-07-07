@@ -1,11 +1,22 @@
 import streamlit as st
+st.set_page_config(page_title="Connect With Us",
+    page_icon="https://github.com/dbaellow-rwa/trilytxbot/blob/fe681401e506fd4deccca9fa7c0c751c2cbbf070/assets/logo.png?raw=true",
+    initial_sidebar_state="expanded",
+    layout="wide")
+st.title("🤝 Connect With Us")
+# Cookie management for user authentication
+from streamlit_cookies_manager import EncryptedCookieManager
+import os
+cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
+if not cookies.ready():
+    st.stop()
 from utils.streamlit_utils import render_login_block,get_oauth
 oauth2, redirect_uri = get_oauth()
 
 with st.sidebar:
     render_login_block(oauth2, redirect_uri)
 
-st.title("🤝 Connect With Us")
+
 st.markdown("""
 We’re building Trilytx in public — and we’d love for you to be part of it.
 
