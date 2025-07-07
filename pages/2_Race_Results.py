@@ -16,7 +16,7 @@ from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_RACE_SEARCH_LOG, BQ_RACE_RECAP_LOG
 from utils.generate_race_recaps import generate_race_recap_for_id
-from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth, get_flag, cookies
+from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link, render_login_block,get_oauth, get_flag
 import json
 oauth2, redirect_uri = get_oauth()
 

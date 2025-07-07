@@ -20,7 +20,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_ATHLETE_SEARCH_LOG
-from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search, cookies, make_race_link
+from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search, make_race_link
 from utils.generate_athlete_summary import generate_athlete_summary_for_athlete
 import os
 import json
