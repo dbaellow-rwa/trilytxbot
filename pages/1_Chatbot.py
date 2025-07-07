@@ -4,7 +4,7 @@ import time
 import uuid
 import pandas as pd
 import streamlit as st
-st.set_page_config(page_title="Trilytx SQL Chatbot",
+st.set_page_config(page_title="Chatbot",
     page_icon="https://github.com/dbaellow-rwa/trilytxbot/blob/fe681401e506fd4deccca9fa7c0c751c2cbbf070/assets/logo.png?raw=true",
     initial_sidebar_state="expanded",
     layout="wide")
