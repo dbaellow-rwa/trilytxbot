@@ -1,7 +1,11 @@
 # cd "C:\Users\dusti\OneDrive\Documents\GitHub\trilytxbot"
 # streamlit run Home.py
 import streamlit as st
-st.set_page_config(page_title="Home", layout="wide")
+st.set_page_config(
+    page_title="Home",
+    page_icon="https://github.com/dbaellow-rwa/trilytxbot/blob/fe681401e506fd4deccca9fa7c0c751c2cbbf070/assets/logo.png?raw=true",
+    initial_sidebar_state="expanded",
+    layout="wide")
 
 import json
 import requests as pyrequests  # rename to avoid conflict with google.auth.transport.requests
