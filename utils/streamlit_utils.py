@@ -74,7 +74,7 @@ def log_vote_to_bq(client: bigquery.Client, full_table_path: str, vote_type: str
     if errors:
         st.error(f"🔴 Error logging vote to BigQuery: {errors}")
 
-def log_interaction_to_bq(client: bigquery.Client, full_table_path: str, question: str, sql: str, summary: str):
+def log_chatbot_question_to_bq(client: bigquery.Client, full_table_path: str, question: str, sql: str, summary: str, is_follow_up=False, previous_question=None, context_history=None):
     """
     Logs a user interaction (question, generated SQL, and summary) to a specified BigQuery table.
 
@@ -97,11 +97,15 @@ def log_interaction_to_bq(client: bigquery.Client, full_table_path: str, questio
         "user_email": user_email,
         "generated_sql": sql,
         "summary": summary,
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "is_follow_up": str(is_follow_up).lower(),
+        "previous_question": previous_question or "",
+        "context_history": context_history or ""
     }]
     errors = client.insert_rows_json(full_table_path, rows)
     if errors:
         st.error(f"🔴 Error logging interaction to BigQuery: {errors}")
+
 
 def log_error_to_bq(client: bigquery.Client, full_table_path: str, question: str, sql: str, error_msg: str, attempt: int):
     """

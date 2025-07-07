@@ -22,7 +22,7 @@ import google.cloud.bigquery as bigquery
 from config.app_config import USE_LOCAL, BQ_CHATBOT_ERROR_LOG, BQ_CHATBOT_ZERO_RESULT_LOG, BQ_CHATBOT_QUESTION_LOG, BQ_CHATBOT_VOTE_FEEDBACK
 from utils.bq_utils import load_credentials, run_bigquery, extract_table_schema
 from utils.llm_utils import generate_sql_from_question_modular, summarize_results
-from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq, get_oauth,init_cookies_and_restore_user
+from utils.streamlit_utils import log_vote_to_bq, log_chatbot_question_to_bq, log_error_to_bq, log_zero_result_to_bq, get_oauth,init_cookies_and_restore_user
 cookies = init_cookies_and_restore_user()
 from utils.security_utils import is_safe_sql
 from utils.about_the_chatbot import render_about
@@ -184,7 +184,20 @@ def process_question(question_text: str, is_follow_up: bool, bq_client: bigquery
 
     # Log interaction
     if "Query blocked for safety" not in summary:
-        log_interaction_to_bq(bq_client, BQ_CHATBOT_QUESTION_LOG, question_text, sql, summary)
+        prev_q = st.session_state.history[-2][0] if is_follow_up and len(st.session_state.history) > 1 else None
+        # Flatten conversation_context_parts (from earlier) into a string
+        context_for_log = "\n".join(conversation_context_parts) if conversation_context_parts else ""
+
+        log_chatbot_question_to_bq(
+            bq_client,
+            BQ_CHATBOT_QUESTION_LOG,
+            question_text,
+            sql,
+            summary,
+            is_follow_up=is_follow_up,
+            previous_question=prev_q,
+            context_history=context_for_log
+        )
 
     # Reset UI state and trigger rerun to reflect changes
     st.session_state.show_follow_up_input = False # Hide follow-up box after any submission
