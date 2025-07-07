@@ -18,7 +18,7 @@ from utils.whitepaper import render_whitepaper
 from utils.executive_summary import render_summary_triathlon_community
 
 with st.sidebar:
-    render_login_block(oauth2, redirect_uri)
+    def render_login_block(oauth2, redirect_uri, cookies))
 
 
 tab1, tab2 = st.tabs(["📌 Executive Summary", "📄 Whitepaper"])

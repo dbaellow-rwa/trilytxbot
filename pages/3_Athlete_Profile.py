@@ -188,7 +188,7 @@ with st.sidebar:
                 del st.session_state[key]
         st.query_params.clear()  # 👈 Clear the URL query string    
         st.rerun()
-    render_login_block(oauth2, redirect_uri)
+    def render_login_block(oauth2, redirect_uri, cookies))
 
 
 if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.session_state:

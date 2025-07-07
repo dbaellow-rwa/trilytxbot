@@ -11,7 +11,7 @@ oauth2, redirect_uri = get_oauth()
 
 
 with st.sidebar:
-    render_login_block(oauth2, redirect_uri)
+    def render_login_block(oauth2, redirect_uri, cookies))
 
 st.title("🤖 About the Trilytx Chatbot")
 

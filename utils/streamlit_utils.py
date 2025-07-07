@@ -173,7 +173,7 @@ from streamlit_cookies_manager import EncryptedCookieManager
 # if not cookies.ready():
 #     st.stop()  # Wait until cookies are ready
 
-def render_login_block(oauth2, redirect_uri):
+def render_login_block(oauth2, redirect_uri, cookies):
     # This block tries to load user from cookie if not in session state
     # This is fine for initial load or new page, but the main app.py also has this logic.
     # It's better to have this single source of truth for loading from cookies:

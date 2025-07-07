@@ -14,7 +14,7 @@ from utils.streamlit_utils import render_login_block,get_oauth
 oauth2, redirect_uri = get_oauth()
 
 with st.sidebar:
-    render_login_block(oauth2, redirect_uri)
+    def render_login_block(oauth2, redirect_uri, cookies))
 
 
 st.markdown("""

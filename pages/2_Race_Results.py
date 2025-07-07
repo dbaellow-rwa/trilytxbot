@@ -133,7 +133,7 @@ with st.sidebar:
         df = bq_client.query(query, job_config=job_config).to_dataframe()
         df["label"] = df["organizer"] + " " + df["cleaned_race_name"] + " " + df["race_gender"] + " (" + df["race_date"].astype(str) + ")"
         st.session_state.races_df = df
-    render_login_block(oauth2, redirect_uri)
+    render_login_block(oauth2, redirect_uri, cookies)
 
 # ────────────────
 # Race Selector
