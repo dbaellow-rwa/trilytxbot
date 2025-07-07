@@ -169,9 +169,9 @@ import json
 from streamlit_cookies_manager import EncryptedCookieManager
 
 # Setup cookie manager
-cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
-if not cookies.ready():
-    st.stop()  # Wait until cookies are ready
+# cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
+# if not cookies.ready():
+#     st.stop()  # Wait until cookies are ready
 
 def render_login_block(oauth2, redirect_uri):
     # This block tries to load user from cookie if not in session state
