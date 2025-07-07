@@ -5,13 +5,9 @@ The **Trilytx Chatbot** helps you analyze triathlon race data through natural la
 
 It’s optimized for triathlon-specific analysis — including PTO scores, athlete rankings, race performance summaries, and segment trends.
 """)
-from utils.streamlit_utils import render_login_block,get_oauth
+from utils.streamlit_utils import get_oauth
 oauth2, redirect_uri = get_oauth()
 
-
-
-with st.sidebar:
-    def render_login_block(oauth2, redirect_uri, cookies))
 
 st.title("🤖 About the Trilytx Chatbot")
 

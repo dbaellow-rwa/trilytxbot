@@ -21,7 +21,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL
-from utils.streamlit_utils import make_race_link, render_login_block, get_oauth, make_athlete_link, get_flag
+from utils.streamlit_utils import make_race_link, make_athlete_link, get_flag
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup

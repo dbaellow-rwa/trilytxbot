@@ -10,15 +10,12 @@ import os
 cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
 if not cookies.ready():
     st.stop()
-from utils.streamlit_utils import render_login_block,get_oauth
+from utils.streamlit_utils import get_oauth
 oauth2, redirect_uri = get_oauth()
 
 
 from utils.whitepaper import render_whitepaper
 from utils.executive_summary import render_summary_triathlon_community
-
-with st.sidebar:
-    render_login_block(oauth2, redirect_uri, cookies)
 
 
 tab1, tab2 = st.tabs(["📌 Executive Summary", "📄 Whitepaper"])

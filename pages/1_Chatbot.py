@@ -27,7 +27,7 @@ import google.cloud.bigquery as bigquery
 from config.app_config import USE_LOCAL, BQ_CHATBOT_ERROR_LOG, BQ_CHATBOT_ZERO_RESULT_LOG, BQ_CHATBOT_QUESTION_LOG, BQ_CHATBOT_VOTE_FEEDBACK
 from utils.bq_utils import load_credentials, run_bigquery, extract_table_schema
 from utils.llm_utils import generate_sql_from_question_modular, summarize_results
-from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq,  render_login_block,get_oauth
+from utils.streamlit_utils import log_vote_to_bq, log_interaction_to_bq, log_error_to_bq, log_zero_result_to_bq, get_oauth
 from utils.security_utils import is_safe_sql
 from utils.about_the_chatbot import render_about
 

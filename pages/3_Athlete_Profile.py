@@ -20,7 +20,7 @@ import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_ATHLETE_SEARCH_LOG
-from utils.streamlit_utils import render_login_block, get_oauth, log_athlete_search, make_race_link
+from utils.streamlit_utils import get_oauth, log_athlete_search, make_race_link
 from utils.generate_athlete_summary import generate_athlete_summary_for_athlete
 import os
 import json
@@ -188,7 +188,6 @@ with st.sidebar:
                 del st.session_state[key]
         st.query_params.clear()  # 👈 Clear the URL query string    
         st.rerun()
-    def render_login_block(oauth2, redirect_uri, cookies))
 
 
 if "selected_athlete" in st.session_state and "selected_athlete_slug" in st.session_state:

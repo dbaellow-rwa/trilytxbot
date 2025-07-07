@@ -10,12 +10,8 @@ import os
 cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
 if not cookies.ready():
     st.stop()
-from utils.streamlit_utils import render_login_block,get_oauth
+from utils.streamlit_utils import get_oauth
 oauth2, redirect_uri = get_oauth()
-
-with st.sidebar:
-    render_login_block(oauth2, redirect_uri, cookies)
-
 
 st.markdown("""
 We’re building Trilytx in public — and we’d love for you to be part of it.
