@@ -9,18 +9,13 @@ st.title("🏃 Athlete Profile Viewer")
 if "athlete_results_df" not in st.session_state:
     st.session_state.athlete_results_df = None
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Cookie management for user authentication
-from streamlit_cookies_manager import EncryptedCookieManager
-import os
-cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
-if not cookies.ready():
-    st.stop()
+
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_ATHLETE_SEARCH_LOG
-from utils.streamlit_utils import get_oauth, log_athlete_search, make_race_link
+from utils.streamlit_utils import get_oauth, log_athlete_search, make_race_link,init_cookies_and_restore_user
+cookies = init_cookies_and_restore_user()
 from utils.generate_athlete_summary import generate_athlete_summary_for_athlete
 import os
 import json

@@ -4,13 +4,9 @@ st.set_page_config(page_title="Connect With Us",
     initial_sidebar_state="expanded",
     layout="wide")
 st.title("🤝 Connect With Us")
-# Cookie management for user authentication
-from streamlit_cookies_manager import EncryptedCookieManager
-import os
-cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
-if not cookies.ready():
-    st.stop()
-from utils.streamlit_utils import get_oauth
+
+from utils.streamlit_utils import get_oauth,init_cookies_and_restore_user
+cookies = init_cookies_and_restore_user()
 oauth2, redirect_uri = get_oauth()
 
 st.markdown("""

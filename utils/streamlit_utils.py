@@ -263,3 +263,21 @@ def get_flag(country_value):
         return f"<img src='https://flagicons.lipis.dev/flags/4x3/{code}.svg' height='16' style='vertical-align:middle; margin-right:4px;'> {country_value}"
     except:
         pass
+
+
+def init_cookies_and_restore_user():
+    from streamlit_cookies_manager import EncryptedCookieManager
+
+    cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
+    if not cookies.ready():
+        st.stop()
+
+    if "user" not in st.session_state and "user" in cookies:
+        try:
+            st.session_state["user"] = json.loads(cookies["user"])
+        except Exception:
+            del cookies["user"]
+            cookies.save()
+            st.warning("❌ Failed to decode user info from cookie.")
+
+    return cookies

@@ -4,19 +4,15 @@ st.set_page_config(page_title="🏁 Race Results Viewer",
     initial_sidebar_state="expanded",
     layout="wide")
 st.title("🏁 Race Results Viewer")
-# ──────────────────────────────────────────────────────────────────────────────
-from streamlit_cookies_manager import EncryptedCookieManager
-import os
-cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
-if not cookies.ready():
-    st.stop()
+
 # Imports
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL, BQ_RACE_SEARCH_LOG, BQ_RACE_RECAP_LOG
 from utils.generate_race_recaps import generate_race_recap_for_id
-from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link,get_oauth, get_flag
+from utils.streamlit_utils import log_race_search, log_race_recap_generate, make_athlete_link,get_oauth, get_flag,init_cookies_and_restore_user
+cookies = init_cookies_and_restore_user()
 import json
 oauth2, redirect_uri = get_oauth()
 

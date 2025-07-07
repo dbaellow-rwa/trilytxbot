@@ -11,17 +11,13 @@ Here you’ll find the top 3 segment performers (Swim, Bike, Run, and Overall) f
 Use the filters in the sidebar to view podiums for a specific race distance and gender.  
 Each segment podium displays athletes ranked by time, along with their country and race name.
 """)
-# Cookie management for user authentication
-from streamlit_cookies_manager import EncryptedCookieManager
-import os
-cookies = EncryptedCookieManager(prefix="trilytx_", password=os.environ["COOKIE_SECRET_TRILYTXBOT"])
-if not cookies.ready():
-    st.stop()
+
 import pandas as pd
 from google.cloud import bigquery
 from utils.bq_utils import load_credentials
 from config.app_config import USE_LOCAL
-from utils.streamlit_utils import make_race_link, make_athlete_link, get_flag
+from utils.streamlit_utils import make_race_link, make_athlete_link, get_flag,init_cookies_and_restore_user
+cookies = init_cookies_and_restore_user()
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Setup
