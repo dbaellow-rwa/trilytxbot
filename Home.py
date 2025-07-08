@@ -166,12 +166,21 @@ def show_beta_overview_triathletes():
 <hr/>
 
 <h3>🏆 Help Build the Future of Triathlon Data</h3>
+<p>Right now, Trilytx is powered by carefully curated race data from 2020 onward — hand-picked to show what’s possible. But our goal is much bigger.</p>
+<p>We’re working to gain full access to the complete datasets — every race, every athlete, every split — so we can:</p>
+<ul>
+  <li>Answer deeper questions across seasons and distances</li>
+  <li>Spot trends, breakthroughs, and rivalries with precision</li>
+  <li>Build the most complete triathlon intelligence platform ever</li>
+</ul>
+<p><strong>You can help us get there:</strong></p>
 <ol>
-  <li><strong>Ask real questions</strong> — about your favorite athletes or upcoming races</li>
-  <li><strong>Generate a recap</strong> with your own twist (“make it dramatic”)</li>
-  <li><strong>Vote</strong> 👍 or 👎 on answers to help us improve</li>
-  <li><strong>Use it often</strong> — the more it’s used, the better it gets</li>
+  <li><strong>Ask real questions</strong> — the more demand we show, the stronger the case for full access</li>
+  <li><strong>Generate recaps</strong> and explore profiles — see what’s possible with smart tools</li>
+  <li><strong>Vote</strong> 👍 or 👎 to improve the answers</li>
+  <li><strong>Share Trilytx</strong> with fans, athletes, and teams who want smarter insights</li>
 </ol>
+<p>With your help, we can build the ultimate triathlon data assistant — one that transforms how we understand the sport.</p>
 
 <hr/>
 
